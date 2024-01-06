@@ -1,0 +1,9 @@
+server:
+  port: 8558
+spring:
+  profiles:
+    include:
+      - redis
+      - thread-pool
+  main:
+    allow-circular-references: true

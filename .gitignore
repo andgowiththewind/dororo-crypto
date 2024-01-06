@@ -36,7 +36,7 @@ build/
 !.gitkeep
 
 ### static目录保留但是不提交dist的拷贝文件 ###
-src/main/resources/static/**
+/src/main/resources/static/**
 
 ### 不提交测试环境文件 ###
 /.environments/**

@@ -2,49 +2,111 @@
 <project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
          xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
     <modelVersion>4.0.0</modelVersion>
+    <!--GAV-->
     <groupId>com.dororo.future</groupId>
     <artifactId>dororo-crypto</artifactId>
-    <version>0.0.1-SNAPSHOT</version>
+    <version>GALE-2024</version>
+    <!--BASE-->
     <name>dororo-crypto</name>
     <description>dororo-crypto</description>
+    <packaging>jar</packaging>
     <properties>
         <java.version>1.8</java.version>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
-        <spring-boot.version>2.7.6</spring-boot.version>
+        <!--UPDATE@20240106-->
+        <spring-boot.version>2.7.17</spring-boot.version>
+        <!--UPDATE@20240106-->
+        <hutool.version>5.8.16</hutool.version>
+        <!--查阅官网文档,在hutool4.2.1版本后,`bouncy.castle.version`版本号需要设置为1.66而非1.68(当前SpringBoot-2.7.17);-->
+        <bouncy.castle.version>1.66</bouncy.castle.version>
     </properties>
     <dependencies>
-        <dependency>
-            <groupId>org.springframework.boot</groupId>
-            <artifactId>spring-boot-starter-data-redis</artifactId>
-        </dependency>
+        <!--WEB项目-->
         <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-web</artifactId>
         </dependency>
-
+        <!--测试-->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-test</artifactId>
+            <scope>test</scope>
+        </dependency>
+        <!--开发工具-->
         <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-devtools</artifactId>
             <scope>runtime</scope>
             <optional>true</optional>
         </dependency>
+        <!--配置自动装配-->
         <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-configuration-processor</artifactId>
             <optional>true</optional>
         </dependency>
+        <!--Lombok不解释-->
         <dependency>
             <groupId>org.projectlombok</groupId>
             <artifactId>lombok</artifactId>
             <optional>true</optional>
         </dependency>
+
+        <!--[########## Hutool是一个小而全的Java工具类库，通过静态方法封装，降低相关API的学习成本，提高工作效率，使Java拥有函数式语言般的优雅，让Java语言也可以“甜甜的”。 ##########]-->
+        <dependency>
+            <groupId>cn.hutool</groupId>
+            <artifactId>hutool-all</artifactId>
+            <version>${hutool.version}</version>
+        </dependency>
+
+        <!--[########## Hutool实现加解密需要的必要依赖 ##########]-->
+        <dependency>
+            <groupId>org.bouncycastle</groupId>
+            <artifactId>bcprov-jdk15to18</artifactId>
+            <version>${bouncy.castle.version}</version>
+        </dependency>
+
+        <!--[########## REDIS缓存 ##########]-->
         <dependency>
             <groupId>org.springframework.boot</groupId>
-            <artifactId>spring-boot-starter-test</artifactId>
-            <scope>test</scope>
+            <artifactId>spring-boot-starter-data-redis</artifactId>
         </dependency>
+
+        <!--[########## REDIS连接池 ##########]-->
+        <dependency>
+            <groupId>org.apache.commons</groupId>
+            <artifactId>commons-pool2</artifactId>
+        </dependency>
+
+        <!--[########## AOP：自定义注解 ##########]-->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-aop</artifactId>
+        </dependency>
+
+        <!--WebSocket实现即时通讯,减少服务器带宽资源消耗-->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-websocket</artifactId>
+        </dependency>
+
+        <!--压缩解压缩-->
+        <dependency>
+            <groupId>net.lingala.zip4j</groupId>
+            <artifactId>zip4j</artifactId>
+            <version>2.11.5</version>
+        </dependency>
+
+        <!--模板引擎-->
+        <dependency>
+            <groupId>org.freemarker</groupId>
+            <artifactId>freemarker</artifactId>
+            <version>2.3.32</version>
+        </dependency>
+
     </dependencies>
+
     <dependencyManagement>
         <dependencies>
             <dependency>
@@ -58,6 +120,7 @@
     </dependencyManagement>
 
     <build>
+        <finalName>dororo-crypto</finalName>
         <plugins>
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
@@ -75,7 +138,7 @@
                 <version>${spring-boot.version}</version>
                 <configuration>
                     <mainClass>com.dororo.future.dororocrypto.DororoCryptoApplication</mainClass>
-                    <skip>true</skip>
+                    <!--<skip>true</skip>-->
                 </configuration>
                 <executions>
                     <execution>
@@ -85,6 +148,18 @@
                         </goals>
                     </execution>
                 </executions>
+            </plugin>
+
+            <!--使用Maven插件加测试类的方式,确保打JAR包之前,已经将dist目录拷贝到了static目录下-->
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-surefire-plugin</artifactId>
+                <version>2.22.2</version> <!-- 使用合适的版本 -->
+                <configuration>
+                    <includes>
+                        <include>**/BeforePackageTests</include>
+                    </includes>
+                </configuration>
             </plugin>
         </plugins>
     </build>
