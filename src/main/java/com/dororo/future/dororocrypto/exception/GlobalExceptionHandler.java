@@ -130,8 +130,8 @@ public class GlobalExceptionHandler {
      * 自定义业务异常:加解密过程中出现的异常
      */
     @ResponseStatus(HttpStatus.FORBIDDEN)
-    @ExceptionHandler(CryptoBusinessException.class)
-    public BaseMvcResponse handleCryptoBusinessException(CryptoBusinessException e) {
+    @ExceptionHandler(CryptoException.class)
+    public BaseMvcResponse handleCryptoBusinessException(CryptoException e) {
         log.debug(e.getMessage(), e);
         return BaseMvcResponse.error(HttpStatus.FORBIDDEN.value(), e.getMessage());
     }

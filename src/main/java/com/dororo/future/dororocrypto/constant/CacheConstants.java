@@ -12,4 +12,11 @@ public class CacheConstants {
      */
     public static String SYS_PARAM_MAP = "sysParams";
 
+    /**
+     * sysParams：map中的键
+     */
+    public static class SysParamHKey {
+        public static String CRYPTO_STATUS_OPTIONS = "cryptoStatusOptions";
+        public static String TOP_DIRECTORY_PATH_OPTIONS = "topDirectoryPathOptions";
+    }
 }
