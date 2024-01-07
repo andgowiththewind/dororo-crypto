@@ -1,7 +1,7 @@
 package com.dororo.future.dororocrypto.config.threadpool;
 
 import cn.hutool.core.util.StrUtil;
-import com.dororo.future.dororocrypto.constant.ThreadPoolNameConstants;
+import com.dororo.future.dororocrypto.constant.ThreadPoolConstants;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Bean;
@@ -23,14 +23,14 @@ public class ThreadPoolConfiguration {
     @Autowired
     private ThreadPoolProperties threadPoolProperties;
 
-    @Bean(value = ThreadPoolNameConstants.DISPATCH)
+    @Bean(value = ThreadPoolConstants.DISPATCH)
     public ThreadPoolTaskExecutor dispatchExecutor() {
-        return init(threadPoolProperties.getDispatcher(), ThreadPoolNameConstants.DISPATCH);
+        return init(threadPoolProperties.getDispatcher(), ThreadPoolConstants.DISPATCH);
     }
 
-    @Bean(value = ThreadPoolNameConstants.CRYPTO)
+    @Bean(value = ThreadPoolConstants.CRYPTO)
     public ThreadPoolTaskExecutor cryptoExecutor() {
-        return init(threadPoolProperties.getCrypto(), ThreadPoolNameConstants.CRYPTO);
+        return init(threadPoolProperties.getCrypto(), ThreadPoolConstants.CRYPTO);
     }
 
     private ThreadPoolTaskExecutor init(ThreadPoolProperties.PropDTO paramsFromYml, String threadNamePrefix) {

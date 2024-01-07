@@ -6,7 +6,7 @@ package com.dororo.future.dororocrypto.constant;
  * @author Dororo
  * @date 2023-12-04 12:10
  */
-public class ThreadPoolNameConstants {
+public class ThreadPoolConstants {
     // 任务分发使用的线程池
     public static final String DISPATCH = "dispatch";
     // 处理加密解密实际操作线程池

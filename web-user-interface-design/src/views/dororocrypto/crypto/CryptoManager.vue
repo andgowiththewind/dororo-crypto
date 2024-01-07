@@ -2,14 +2,12 @@
   <div>
     <el-container class="top-container-clazz">
       <el-aside v-drag style="width: 250px;">
-        <!--        <AsideTree/>-->
-        <span>1</span>
+        <AsideMenu/>
       </el-aside>
       <el-container>
         <el-header>Header</el-header>
         <el-main style="padding: 5px !important;">
-          <!--          <CenterContent/>-->
-          <span>2</span>
+          <CenterContent/>
         </el-main>
         <el-footer>Footer</el-footer>
       </el-container>
@@ -19,11 +17,13 @@
 
 <script>
 import {Notification, MessageBox, Message, Loading} from 'element-ui';
+import AsideMenu from '@/views/dororocrypto/crypto/AsideMenu.vue';
+import CenterContent from '@/views/dororocrypto/crypto/CenterContent.vue';
 
 export default {
   // 请注意这里的.vue后缀需要去掉
   name: "CryptoManager",
-  components: {},
+  components: {AsideMenu, CenterContent},
   data() {
     return {}
   },
