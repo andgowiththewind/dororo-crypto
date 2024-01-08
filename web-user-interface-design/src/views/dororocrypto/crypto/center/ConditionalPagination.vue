@@ -45,9 +45,10 @@
 
 <script>
 import {Notification, MessageBox, Message, Loading} from 'element-ui';
-import * as methodConsts from "@/config/methodConsts";
-import {devConsoleLog, getSysParam} from "@/utils/dororoUtils";
+import * as methodConsts from '@/config/methodConsts';
+import {devConsoleLog, getSysParam} from '@/utils/dororoUtils';
 import {nanoid} from 'nanoid';
+import {submitConditionPagingQuery} from '@/api/conditionalPaginationApi';
 
 
 export default {
@@ -89,6 +90,12 @@ export default {
       Object.assign(data.page, this.conditionVo.page);
       Object.assign(data.params, this.conditionVo.params);
       // 请求
+      submitConditionPagingQuery(data).then(res => {
+        this.conditionVo.page.total = res.data.total;
+        this.$bus.$emit(methodConsts.INSIGHT_TABLE_DATA_UPDATE, res.data.list);
+      });
+
+
     },
     bindingNodeClickEvent() {
       this.$bus.$on(methodConsts.TREE_NODE_CLICK_EVENT, (folderPath) => {
@@ -123,6 +130,13 @@ export default {
     'conditionVo.params.cryptoStatus': {
       handler: function (newVal, oldVal) {
         this.submitConditionPagingQuery();
+      },
+      deep: true,
+    },
+    'conditionVo.params.folderPath': {
+      handler: function (newVal, oldVal) {
+        // 同步更新都其他组件
+        this.$bus.$emit(methodConsts.FOLDER_PATH_UPDATE, newVal);
       },
       deep: true,
     },

@@ -6,7 +6,7 @@ import cn.hutool.core.lang.Assert;
 import com.dororo.future.dororocrypto.components.RedisCache;
 import com.dororo.future.dororocrypto.constant.CacheConstants;
 import com.dororo.future.dororocrypto.dto.FolderNode;
-import com.dororo.future.dororocrypto.exception.CryptoException;
+import com.dororo.future.dororocrypto.exception.CryptoBusinessException;
 import com.dororo.future.dororocrypto.service.common.BaseService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
@@ -52,7 +52,7 @@ public class FolderTreeService extends BaseService {
             Assert.isTrue(FileUtil.exist(FileUtil.file(path)), "路径不存在");
             Assert.isTrue(FileUtil.isDirectory(path), "路径不是目录");
         } catch (Exception e) {
-            throw new CryptoException(e.getMessage());
+            throw new CryptoBusinessException(e.getMessage());
         }
         // 合法的情况下,将当前目录缓存到REDIS,先查出
         List<String> beforeList = redisCache.getCacheMapValue(CacheConstants.SYS_PARAM_MAP, CacheConstants.SysParamHKey.TOP_DIRECTORY_PATH_OPTIONS);

@@ -13,14 +13,14 @@ export function handleRequestAntiShake(config, interval = 2000) {
     const rawKey = `${method.toUpperCase()} ${url}?${paramsString}&${dataString}`;
     const requestKey = CryptoJS.MD5(rawKey).toString();
 
-    const lastCallTime = localStorage.getItem(requestKey);
+    const lastCallTime = sessionStorage.getItem(requestKey);
     const currentCallTime = Date.now();
 
     if (lastCallTime && currentCallTime - parseInt(lastCallTime, 10) < interval) {
         return false; // 请求应该被阻止
     }
 
-    localStorage.setItem(requestKey, currentCallTime.toString());
+    sessionStorage.setItem(requestKey, currentCallTime.toString());
     return true; // 请求可以继续
 }
 

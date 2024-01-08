@@ -27,4 +27,10 @@ public class SysParamController {
         Assert.notBlank(key, "key不能为空");
         return BaseMvcResponse.successData(sysParamService.getSysParam(key));
     }
+
+    @GetMapping("/checkSecretKey")
+    public BaseMvcResponse checkSecretKey() {
+        // TODO 主要业务逻辑在过滤器
+        return BaseMvcResponse.success("密码格式检查通过!");
+    }
 }

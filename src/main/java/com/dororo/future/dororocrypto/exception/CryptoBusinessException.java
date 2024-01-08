@@ -12,12 +12,12 @@ import lombok.NoArgsConstructor;
 @NoArgsConstructor
 @AllArgsConstructor
 @EqualsAndHashCode(callSuper = true)
-public class CryptoException extends RuntimeException {
+public class CryptoBusinessException extends RuntimeException {
     private static final long serialVersionUID = 1L;
     private Integer code;
     private String message;
 
-    public CryptoException(String message) {
+    public CryptoBusinessException(String message) {
         super(message);
         this.message = message;
     }

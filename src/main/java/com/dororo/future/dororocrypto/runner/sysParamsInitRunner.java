@@ -4,6 +4,7 @@ import cn.hutool.json.JSONObject;
 import cn.hutool.json.JSONUtil;
 import com.dororo.future.dororocrypto.components.RedisCache;
 import com.dororo.future.dororocrypto.constant.CacheConstants;
+import com.dororo.future.dororocrypto.constant.ComConstants;
 import com.dororo.future.dororocrypto.enums.CryptoStatusEnum;
 import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
@@ -31,6 +32,11 @@ public class sysParamsInitRunner implements ApplicationRunner {
     @Override
     public void run(ApplicationArguments args) throws Exception {
         setCryptoStatusOptions();
+        setEncryptedPrefix();
+    }
+
+    private void setEncryptedPrefix() {
+        redisCache.setCacheMapValue(CacheConstants.SYS_PARAM_MAP, CacheConstants.SysParamHKey.ENCRYPTED_PREFIX, ComConstants.ENCRYPTED_PREFIX);
     }
 
     private void setCryptoStatusOptions() {
