@@ -1,6 +1,5 @@
 package com.dororo.future.dororocrypto.controller.common;
 
-import cn.hutool.core.date.DateUtil;
 import com.dororo.future.dororocrypto.components.DistributedLockService;
 import com.dororo.future.dororocrypto.components.RedisCache;
 import com.dororo.future.dororocrypto.vo.BaseMvcResponse;
@@ -24,10 +23,18 @@ public class TestController {
     private RedisCache redisCache;
     @Autowired
     private DistributedLockService distributedLockService;
+    // @Autowired
+    // private BlossomIdService blossomIdService;
 
     @GetMapping("/test")
     public BaseMvcResponse test() {
-        CompletableFuture.runAsync(() -> distributedLockService.executeWithLock("testDistributedLock"));
+        // CompletableFuture.runAsync(() -> distributedLockService.executeWithLock("testDistributedLock"));
+
+
+        for (int i = 0; i < 10; i++) {
+            // CompletableFuture.runAsync(() -> blossomIdService.getOrDefault("C:\\Users\\Administrator\\Desktop\\文件.txt"));
+        }
+
         return BaseMvcResponse.success();
     }
 }

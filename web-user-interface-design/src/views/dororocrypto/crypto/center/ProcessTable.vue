@@ -1,6 +1,6 @@
 <template>
   <div>
-    CenterContent.vue
+    ProcessTable.vue
   </div>
 </template>
 
@@ -11,7 +11,7 @@ import {Notification, MessageBox, Message, Loading} from 'element-ui';
 
 export default {
   // 请注意这里的.vue后缀需要去掉
-  name: "CenterContent",
+  name: "ProcessTable",
   components: {},
   data() {
     return {}

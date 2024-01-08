@@ -87,3 +87,37 @@ npm i axios --save
 npm install nanoid --save
 ```
 
+
+
+
+
+# 安装`nanoid`
+
+```shell
+npm install nanoid --save
+```
+
+> `.vue`文件引入
+
+```vue
+import {nanoid} from 'nanoid';
+```
+
+> 直接使用即可
+
+```javascript
+let nanoId = nanoid();
+devConsoleLog('nanoId', nanoId);
+
+let anotherNanoId = nanoid(22);
+devConsoleLog('anotherNanoId', anotherNanoId);
+```
+
+
+
+# 安装`crypto-js`
+
+```
+npm install crypto-js --save
+```
+

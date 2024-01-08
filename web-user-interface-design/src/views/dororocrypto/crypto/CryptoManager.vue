@@ -17,8 +17,8 @@
 
 <script>
 import {Notification, MessageBox, Message, Loading} from 'element-ui';
-import AsideMenu from '@/views/dororocrypto/crypto/AsideMenu.vue';
-import CenterContent from '@/views/dororocrypto/crypto/CenterContent.vue';
+import AsideMenu from '@/views/dororocrypto/crypto/aside/AsideMenu.vue';
+import CenterContent from '@/views/dororocrypto/crypto/center/CenterContent.vue';
 
 export default {
   // 请注意这里的.vue后缀需要去掉

@@ -3,6 +3,8 @@
 // ###########################################################################################################
 import axios from 'axios'
 import {Notification, MessageBox, Message, Loading} from 'element-ui'
+import {handleRequestAntiShake, handleGetRequest} from './requestHelper';
+
 
 // 创建axios实例
 const service = axios.create({
@@ -17,13 +19,18 @@ const service = axios.create({
 
 // request拦截器
 service.interceptors.request.use(config => {
-    // 如果是GET请求,且有参数,则将参数拼接到url后面
-    if (config.method === 'get' && config.params) {
-        let url = config.url + '?' + tansParams(config.params);
-        url = url.slice(0, -1);
-        config.params = {};
-        config.url = url;
+    // 1.0 处理防抖:如果请求头中发现本次请求要求检查防抖
+    const enableAntiShake = config.headers.enableAntiShake;
+    delete config.headers.enableAntiShake; // 从headers中移除,不需要传递给后端
+    // 1.1 如果需要防抖,则检查是否需要防抖
+    if (enableAntiShake && !handleRequestAntiShake(config)) {
+        return Promise.reject(new Error('请求过于频繁'));
     }
+
+    // 2.0 如果是GET请求,且有参数,则将参数拼接到url后面
+    config = handleGetRequest(config);
+
+    // 3.0 返回配置
     return config;
 }, error => {
     console.log(error)
@@ -49,8 +56,8 @@ service.interceptors.response.use(
         return res.data;
     },
     error => {
-        // console.log('$#err#$', error)
-        let message = '未知错误';
+        // 结构赋值：从error中取出message属性,并创建一个同名的变量,并赋值给它
+        let {message} = error;
         if (message == "Network Error") {
             message = "后端接口连接异常";
         } else if (message.includes("timeout")) {
@@ -65,31 +72,5 @@ service.interceptors.response.use(
     }
 )
 
-/**
- * 转换请求参数
- * @param params 参数
- * @returns {string} 转换后的参数
- */
-function tansParams(params) {
-    let result = ''
-    for (const propName of Object.keys(params)) {
-        const value = params[propName];
-        var part = encodeURIComponent(propName) + "=";
-        if (value !== null && value !== "" && typeof (value) !== "undefined") {
-            if (typeof value === 'object') {
-                for (const key of Object.keys(value)) {
-                    if (value[key] !== null && value[key] !== "" && typeof (value[key]) !== 'undefined') {
-                        let params = propName + '[' + key + ']';
-                        var subPart = encodeURIComponent(params) + "=";
-                        result += subPart + encodeURIComponent(value[key]) + "&";
-                    }
-                }
-            } else {
-                result += part + encodeURIComponent(value) + "&";
-            }
-        }
-    }
-    return result;
-}
 
 export default service

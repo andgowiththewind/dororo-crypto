@@ -135,5 +135,4 @@ public class GlobalExceptionHandler {
         log.debug(e.getMessage(), e);
         return BaseMvcResponse.error(HttpStatus.FORBIDDEN.value(), e.getMessage());
     }
-
 }
