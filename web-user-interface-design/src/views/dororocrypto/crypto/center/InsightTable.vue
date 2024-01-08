@@ -123,7 +123,7 @@ export default {
       let defaultParams = {"pathList": [], "PathType": 'file', "askEncrypt": true, userPassword: this.userPassword, bufferSize: this.bufferSize};
       Object.assign(defaultParams, cryptoReqVo);
       cryptoSubmitFn(defaultParams).then(res => {
-        // devConsoleLog('cryptoSubmitFn', res);
+        // TODO
       });
     },
     checkSecretKey() {
@@ -152,12 +152,26 @@ export default {
         this.folderPathCopy = folderPath;
       });
     },
+    bufferSizeOptionsInit() {
+      let list = [];
+      for (let i = 0; i < 10; i++) {
+        list.push(i + 1);
+      }
+      list.push(20);
+      list.push(30);
+      list.push(40);
+      list.push(50);
+      list.map(item => {
+        this.sysParams.bufferSizeOptions.push({label: item * 1024, value: item * 1024});
+      });
+    },
   },
   watch: {},
   mounted() {
     this.updateInsightTableDataBinding();
     this.folderPathUpdateBinding();
     this.sysParamsInit();
+    this.bufferSizeOptionsInit();
   },
 }
 </script>
