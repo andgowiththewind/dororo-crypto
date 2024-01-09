@@ -82,7 +82,7 @@ public class BlossomCacheService extends BaseService {
     // 统一的分布式锁前缀
     public String getLockKey(String id) {
         Assert.notBlank(id);
-        return StrUtil.format("{}:{}", CacheConstants.LOCK_BLOSSOM, id);
+        return StrUtil.format("{}:{}", CacheConstants.PREFIX_LOCK_BLOSSOM, id);
     }
 
     /**

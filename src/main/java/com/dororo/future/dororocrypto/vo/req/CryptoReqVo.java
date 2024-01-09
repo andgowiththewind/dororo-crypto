@@ -26,7 +26,7 @@ public class CryptoReqVo {
      *
      * @see PathTypeEnum
      */
-    private String PathType;
+    private String pathType;
     /**
      * 本次请求是否要求加密: true:加密;false:解密
      */
@@ -40,7 +40,7 @@ public class CryptoReqVo {
     /**
      * 缓冲区大小
      */
-    private Long bufferSize;
+    private Integer bufferSize;
 
 
     @Getter

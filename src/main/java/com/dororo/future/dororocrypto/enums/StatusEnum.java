@@ -17,7 +17,7 @@ import java.util.stream.Collectors;
 @Getter
 @AllArgsConstructor
 public enum StatusEnum {
-    ABSENT(-1, "文件不存在", "文件不存在或已删除"),
+    ABSENT(-1, "文件不存在或已删除", "文件不存在或已删除"),
     FREE(0, "空闲", "存在但未被分配任务"),
     WAITING(10, "排队中", "分配了任务,处于排队线程中但未进入工作线程处理"),
     OUTPUTTING(20, "输出中", "作为源文件,正在输出到其他文件"),

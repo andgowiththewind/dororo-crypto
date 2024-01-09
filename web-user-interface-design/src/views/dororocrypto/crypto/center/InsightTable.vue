@@ -24,7 +24,7 @@
           </div>
           <div v-if="scope.row.status===0">
             <div v-if="hadBeenEncrypted(scope.row.name)">
-              <el-button type="success" plain size="mini" @click="decryptOne(scope.row)">解密</el-button>
+              <el-button type="danger" plain size="mini" @click="decryptOne(scope.row)">解密</el-button>
             </div>
             <div v-if="!hadBeenEncrypted(scope.row.name)">
               <el-button type="success" plain size="mini" @click="encryptOne(scope.row)">加密</el-button>
@@ -141,6 +141,10 @@ export default {
     },
     sysParamsInit() {
       getSysParam('encryptedPrefix').then(res => {
+        if (!res.data) {
+          Notification({title: '系统参数', message: '系统参数获取失败:已加密文件前缀', type: 'error', duration: 2000, position: 'bottom-right'});
+          return;
+        }
         this.sysParams = Object.assign({}, this.sysParams, {encryptedPrefix: res.data});
       });
     },

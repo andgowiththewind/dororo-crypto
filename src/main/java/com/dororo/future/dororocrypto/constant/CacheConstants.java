@@ -1,5 +1,7 @@
 package com.dororo.future.dororocrypto.constant;
 
+import java.util.Map;
+
 /**
  * 缓存常量
  *
@@ -31,6 +33,8 @@ public class CacheConstants {
         public static final String ENCRYPTED_PREFIX = "encryptedPrefix";
     }
 
-    // 操作Blossom增删改时锁前缀
-    public static final String LOCK_BLOSSOM = "lockBlossom";
+    // 操作Blossom增删改时,分布式锁锁前缀
+    public static final String PREFIX_LOCK_BLOSSOM = "lockBlossom";
+    // 提交加解密请求时后端实现防抖,锁前缀
+    public static final String MISSION_ANTI_SHAKE = "missionAntiShake";
 }

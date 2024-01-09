@@ -7,15 +7,16 @@ import cn.hutool.core.util.ReUtil;
 import cn.hutool.core.util.StrUtil;
 import cn.hutool.core.util.URLUtil;
 import cn.hutool.crypto.digest.DigestUtil;
+import cn.hutool.crypto.symmetric.AES;
 import com.dororo.future.dororocrypto.components.RedisCache;
 import com.dororo.future.dororocrypto.constant.CacheConstants;
 import com.dororo.future.dororocrypto.exception.CryptoBusinessException;
+import com.dororo.future.dororocrypto.util.AesUtils;
 import com.dororo.future.dororocrypto.vo.common.PassCheckVo;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 import org.springframework.web.filter.OncePerRequestFilter;
-import org.springframework.web.filter.RelativeRedirectFilter;
 
 import javax.servlet.FilterChain;
 import javax.servlet.ServletException;
@@ -32,7 +33,7 @@ import java.util.List;
  */
 @Slf4j
 @Component
-public class SecretKeyFilter extends OncePerRequestFilter {
+public class PasswordFilter extends OncePerRequestFilter {
     @Autowired
     private RedisCache redisCache;
 
@@ -75,7 +76,12 @@ public class SecretKeyFilter extends OncePerRequestFilter {
         }
         // 如果缓存中不存在,说明是首次校验
         try {
+            // 指定条件校验
             userPassValidate(userPassword);
+
+            // TODO 模拟一次加密解密,防止未知原因的错误
+            simulateOnceCrypto(userPassword);
+
             // 校验通过,将校验结果记录到缓存中
             redisCache.setCacheMapValue(CacheConstants.PASS_CHECK_MAP, sha256Hex, PassCheckVo.builder().sha256Key(sha256Hex).check(true).build());
             redisCache.expire(CacheConstants.PASS_CHECK_MAP, 60 * 60 * 24 * 7);
@@ -91,12 +97,25 @@ public class SecretKeyFilter extends OncePerRequestFilter {
     }
 
     private void userPassValidate(String userPassword) {
-        Assert.isTrue((userPassword.length() >= 8 && userPassword.length() <= 24), "密码长度要求8-24个字符,当前：" + userPassword.length() + "个字符");
+        int min = 8;
+        int max = 24;
+        Assert.isTrue((userPassword.length() >= min && userPassword.length() <= max), StrUtil.format("密码长度要求{}至{}个字符", min, max));
         Assert.isFalse(Validator.hasChinese(userPassword), "密码不能包含中文");
         Assert.isTrue(ReUtil.contains("[A-Z]", userPassword), "密码要求至少包含一个大写字母");
         Assert.isTrue(ReUtil.contains("[a-z]", userPassword), "密码要求至少包含一个小写字母");
         Assert.isTrue(ReUtil.contains("[0-9]", userPassword), "密码要求至少包含一个数字");
         // 至少包含一个特殊字符 (常用特殊字符: ! @ # $ % ^ & * - + = ?)
         Assert.isTrue(ReUtil.contains("[!@#$%^&*\\-+=?]", userPassword), "密码要求至少包含一个特殊字符,常用特殊字符: ! @ # $ % ^ & * - + = ?");
+    }
+
+    private void simulateOnceCrypto(String userPassword) {
+        try {
+            AES aes = AesUtils.getAes(userPassword);
+            String afterEncrypt = aes.encryptHex(userPassword);
+            String afterDecrypt = aes.decryptStr(afterEncrypt);
+            Assert.isTrue(userPassword.equals(afterDecrypt), "密码格式不合规");
+        } catch (Exception e) {
+            throw new RuntimeException(e);
+        }
     }
 }
