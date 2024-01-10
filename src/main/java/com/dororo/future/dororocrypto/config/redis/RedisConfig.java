@@ -1,73 +1,107 @@
 package com.dororo.future.dororocrypto.config.redis;
 
-import lombok.extern.slf4j.Slf4j;
+import cn.hutool.core.util.StrUtil;
+import com.fasterxml.jackson.annotation.JsonAutoDetect;
+import com.fasterxml.jackson.annotation.PropertyAccessor;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.jsontype.impl.LaissezFaireSubTypeValidator;
 import org.apache.commons.pool2.impl.GenericObjectPoolConfig;
-import org.springframework.cache.annotation.CachingConfigurerSupport;
-import org.springframework.cache.annotation.EnableCaching;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
-import org.springframework.data.redis.connection.RedisPassword;
+import org.springframework.context.annotation.Primary;
 import org.springframework.data.redis.connection.RedisStandaloneConfiguration;
-import org.springframework.data.redis.connection.lettuce.LettuceClientConfiguration;
 import org.springframework.data.redis.connection.lettuce.LettuceConnectionFactory;
 import org.springframework.data.redis.connection.lettuce.LettucePoolingClientConfiguration;
+import org.springframework.data.redis.core.RedisTemplate;
+import org.springframework.data.redis.serializer.Jackson2JsonRedisSerializer;
+import org.springframework.data.redis.serializer.StringRedisSerializer;
 
 import java.time.Duration;
-import java.util.HashMap;
-import java.util.Map;
+import java.util.Optional;
 
 /**
  * REDIS配置类
- * <p>当前配置类的主要作用是:
- * (1)注入一个自定义的动态REDIS数据源Bean;
- * (2)
- * </p>
  *
  * @author Dororo
- * @date 2023-11-23 16:13
+ * @date 2024-01-11 01:56
  */
-@Slf4j
 @Configuration
-@EnableCaching
-public class RedisConfig extends CachingConfigurerSupport {
-    // TODO 动态REDIS数据源
+public class RedisConfig {
+
+    private final RedisYmlProperties redisYmlProperties;
+
+    public RedisConfig(RedisYmlProperties redisYmlProperties) {
+        this.redisYmlProperties = redisYmlProperties;
+    }
+
     @Bean
-    public DynamicRedisDataSource dynamicRedisDataSource(DynamicRedisProperties dynamicRedisProperties) {
-        log.info("DynamicRedisDataSource init ...");
-        // 根据yaml配置的REDIS数据源属性,创建对应的REDIS连接工厂,并收集到一个map中
-        Map<String, LettuceConnectionFactory> connectionFactoryMap = new HashMap<>();
-        dynamicRedisProperties.getPropertiesMap().forEach((key, value) -> connectionFactoryMap.put(key, getFactoryByYmlProps(value)));
-        // 将收集好的连接工程map传入自定义的动态REDIS数据源中,返回一个动态REDIS数据源对象,注入到Spring容器中,Spring在尝试连接REDIS时,会从该数据源中获取连接工厂
-        return new DynamicRedisDataSource(connectionFactoryMap);
+    @Primary
+    public LettuceConnectionFactory masterConnectionFactory() {
+        return createConnectionFactory(redisYmlProperties.getPropertiesMap().get(RedisDsEnum.MASTER.getValue()));
     }
 
-    private LettuceConnectionFactory getFactoryByYmlProps(DynamicRedisProperties.PropertyDTO redisProperties) {
-        return new LettuceConnectionFactory(getRedisConfig(redisProperties), getClientConfig(redisProperties));
+    @Bean
+    public LettuceConnectionFactory slaveConnectionFactory() {
+        return createConnectionFactory(redisYmlProperties.getPropertiesMap().get(RedisDsEnum.SLAVE.getValue()));
     }
 
-    private RedisStandaloneConfiguration getRedisConfig(DynamicRedisProperties.PropertyDTO redisProperties) {
-        RedisStandaloneConfiguration config = new RedisStandaloneConfiguration();
-        config.setHostName(redisProperties.getHost());
-        config.setPort(redisProperties.getPort());
-        config.setDatabase(redisProperties.getDatabase());
-        config.setPassword(RedisPassword.of(redisProperties.getPassword()));
-        return config;
+    @Bean
+    @Primary
+    public RedisTemplate<Object, Object> masterRedisTemplate() {
+        return createRedisTemplate(masterConnectionFactory());
     }
 
-    private LettuceClientConfiguration getClientConfig(DynamicRedisProperties.PropertyDTO redisProperties) {
-        LettuceClientConfiguration clientConfig = LettucePoolingClientConfiguration.builder()
-                .commandTimeout(Duration.ofMillis(redisProperties.getTimeout()))
-                .poolConfig(getPoolConfig(redisProperties))
+    @Bean
+    // @DependsOn("slaveConnectionFactory")
+    public RedisTemplate<Object, Object> slaveRedisTemplate() {
+        return createRedisTemplate(slaveConnectionFactory());
+    }
+
+    private RedisTemplate<Object, Object> createRedisTemplate(LettuceConnectionFactory connectionFactory) {
+        // 模板
+        RedisTemplate<Object, Object> template = new RedisTemplate<>();
+        // 设置连接工厂
+        template.setConnectionFactory(connectionFactory);
+        // 采用Jackson序列化
+        Jackson2JsonRedisSerializer<Object> jackson2JsonRedisSerializer = new Jackson2JsonRedisSerializer<Object>(Object.class);
+        ObjectMapper objectMapper = new ObjectMapper();
+        objectMapper.setVisibility(PropertyAccessor.ALL, JsonAutoDetect.Visibility.ANY);
+        objectMapper.activateDefaultTyping(LaissezFaireSubTypeValidator.instance, ObjectMapper.DefaultTyping.NON_FINAL);
+        jackson2JsonRedisSerializer.setObjectMapper(objectMapper);
+        // 配置序列化
+        template.setKeySerializer(new StringRedisSerializer());
+        template.setHashKeySerializer(new StringRedisSerializer());
+        template.setValueSerializer(jackson2JsonRedisSerializer);
+        template.setHashValueSerializer(jackson2JsonRedisSerializer);
+        //
+        template.afterPropertiesSet();
+        return template;
+    }
+
+    private LettuceConnectionFactory createConnectionFactory(RedisYmlProperties.PropertyDTO properties) {
+        // (1) `RedisStandaloneConfiguration`
+        RedisStandaloneConfiguration redisConfig = new RedisStandaloneConfiguration();
+        redisConfig.setHostName(properties.getHost());
+        redisConfig.setPort(properties.getPort());
+        redisConfig.setDatabase(properties.getDatabase());
+        Optional.ofNullable(properties.getPassword()).filter(StrUtil::isNotBlank).ifPresent(redisConfig::setPassword);
+
+        // (2) `LettuceClientConfiguration`
+        LettucePoolingClientConfiguration clientConfig = LettucePoolingClientConfiguration.builder()
+                .commandTimeout(Duration.ofMillis(properties.getTimeout()))
+                .poolConfig(getPoolConfig(properties.getLettuce().getPool()))
                 .build();
-        return clientConfig;
+
+        // (1)+(2) =`LettuceConnectionFactory`
+        return new LettuceConnectionFactory(redisConfig, clientConfig);
     }
 
-    private GenericObjectPoolConfig getPoolConfig(DynamicRedisProperties.PropertyDTO redisProperties) {
-        GenericObjectPoolConfig config = new GenericObjectPoolConfig();
-        config.setMinIdle(redisProperties.getLettuce().getPool().getMinIdle());
-        config.setMaxIdle(redisProperties.getLettuce().getPool().getMaxIdle());
-        config.setMaxTotal(redisProperties.getLettuce().getPool().getMaxActive());
-        config.setMaxWaitMillis(redisProperties.getLettuce().getPool().getMaxWait());
-        return config;
+    private GenericObjectPoolConfig<?> getPoolConfig(RedisYmlProperties.PropertyDTO.Pool pool) {
+        GenericObjectPoolConfig<?> poolConfig = new GenericObjectPoolConfig<>();
+        poolConfig.setMinIdle(pool.getMinIdle());
+        poolConfig.setMaxIdle(pool.getMaxIdle());
+        poolConfig.setMaxTotal(pool.getMaxActive());
+        poolConfig.setMaxWaitMillis(pool.getMaxWait());
+        return poolConfig;
     }
 }

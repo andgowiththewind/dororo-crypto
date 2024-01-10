@@ -3,11 +3,10 @@ package com.dororo.future.dororocrypto.runner;
 import cn.hutool.core.util.StrUtil;
 import cn.hutool.json.JSONObject;
 import cn.hutool.json.JSONUtil;
-import com.dororo.future.dororocrypto.components.RedisCache;
+import com.dororo.future.dororocrypto.components.RedisMasterCache;
 import com.dororo.future.dororocrypto.constant.CacheConstants;
 import com.dororo.future.dororocrypto.constant.ComConstants;
 import com.dororo.future.dororocrypto.enums.CryptoStatusEnum;
-import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
@@ -29,7 +28,7 @@ import java.util.stream.Collectors;
 @Component
 public class sysParamsInitRunner implements ApplicationRunner {
     @Autowired
-    private RedisCache redisCache;
+    private RedisMasterCache redisMasterCache;
     @Value("${server.port}")
     private Integer port;
 
@@ -41,17 +40,17 @@ public class sysParamsInitRunner implements ApplicationRunner {
     }
 
     private void setWebsocketUriPrefix() {
-        redisCache.setCacheMapValue(CacheConstants.SYS_PARAM_MAP, CacheConstants.SysParamHKey.WEBSOCKET_URI_PREFIX, StrUtil.format("ws://localhost:{}", port));
+        redisMasterCache.setCacheMapValue(CacheConstants.SYS_PARAM_MAP, CacheConstants.SysParamHKey.WEBSOCKET_URI_PREFIX, StrUtil.format("ws://localhost:{}", port));
     }
 
     private void setEncryptedPrefix() {
-        redisCache.setCacheMapValue(CacheConstants.SYS_PARAM_MAP, CacheConstants.SysParamHKey.ENCRYPTED_PREFIX, ComConstants.ENCRYPTED_PREFIX);
+        redisMasterCache.setCacheMapValue(CacheConstants.SYS_PARAM_MAP, CacheConstants.SysParamHKey.ENCRYPTED_PREFIX, ComConstants.ENCRYPTED_PREFIX);
     }
 
     private void setCryptoStatusOptions() {
         List<JSONObject> options = Arrays.stream(CryptoStatusEnum.values())
                 .map(statusEnum -> JSONUtil.createObj().putOpt("code", statusEnum.getCode()).putOpt("name", statusEnum.getName()))
                 .collect(Collectors.toList());
-        redisCache.setCacheMapValue(CacheConstants.SYS_PARAM_MAP, CacheConstants.SysParamHKey.CRYPTO_STATUS_OPTIONS, options);
+        redisMasterCache.setCacheMapValue(CacheConstants.SYS_PARAM_MAP, CacheConstants.SysParamHKey.CRYPTO_STATUS_OPTIONS, options);
     }
 }

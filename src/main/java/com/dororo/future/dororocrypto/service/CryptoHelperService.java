@@ -9,14 +9,12 @@ import cn.hutool.core.date.TimeInterval;
 import cn.hutool.core.io.FileUtil;
 import cn.hutool.core.io.IoUtil;
 import cn.hutool.core.lang.Assert;
-import cn.hutool.core.lang.Console;
 import cn.hutool.core.thread.ThreadUtil;
 import cn.hutool.core.util.NumberUtil;
 import cn.hutool.core.util.RandomUtil;
 import cn.hutool.core.util.StrUtil;
 import cn.hutool.crypto.digest.DigestUtil;
-import cn.hutool.json.JSONUtil;
-import com.dororo.future.dororocrypto.components.RedisCache;
+import com.dororo.future.dororocrypto.components.RedisMasterCache;
 import com.dororo.future.dororocrypto.constant.CacheConstants;
 import com.dororo.future.dororocrypto.constant.ComConstants;
 import com.dororo.future.dororocrypto.dto.Blossom;
@@ -26,9 +24,7 @@ import com.dororo.future.dororocrypto.exception.CryptoBusinessException;
 import com.dororo.future.dororocrypto.service.common.BaseService;
 import com.dororo.future.dororocrypto.util.AesUtils;
 import com.dororo.future.dororocrypto.util.PathUtils;
-import com.dororo.future.dororocrypto.vo.common.CryptoWebSocketMessage;
 import com.dororo.future.dororocrypto.vo.common.EncryptedNameVo;
-import com.dororo.future.dororocrypto.websocket.CryptoWebSocket;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
@@ -36,11 +32,7 @@ import org.springframework.stereotype.Service;
 import java.io.BufferedInputStream;
 import java.io.BufferedOutputStream;
 import java.io.File;
-import java.util.ArrayList;
-import java.util.LinkedList;
-import java.util.List;
-import java.util.Optional;
-import java.util.concurrent.CompletableFuture;
+import java.util.*;
 import java.util.function.BiConsumer;
 import java.util.function.Consumer;
 import java.util.stream.Collectors;
@@ -55,7 +47,7 @@ import java.util.stream.Collectors;
 @Service
 public class CryptoHelperService extends BaseService {
     @Autowired
-    private RedisCache redisCache;
+    private RedisMasterCache redisMasterCache;
     @Autowired
     private BlossomCacheService blossomCacheService;
 
@@ -95,19 +87,38 @@ public class CryptoHelperService extends BaseService {
     protected void updateCacheAndPublish(Blossom source) {
         // 绝对路径涉及ID的获取,不能为空
         Assert.notBlank(source.getAbsPath());
+
         // 实时查出缓存中的记录
         Blossom target = blossomCacheService.lockToGetOrDefault(source.getAbsPath());
+
         // 基于`BeanUtil.copyProperties`方法复制对象属性,实现类似于JavaScript中`Object.assign`的功
         BeanUtil.copyProperties(source, target, CopyOptions.create().setIgnoreNullValue(true));
-        // 更新缓存
-        redisCache.setCacheMapValue(CacheConstants.BLOSSOM_MAP, target.getId(), target);
 
-        // TODO 发布消息
+        // 更新缓存
+        redisMasterCache.setCacheMapValue(CacheConstants.BLOSSOM_MAP, target.getId(), target);
+
+
+        // 取消消息推送
+/*        // 临时文件不需要广播,因为不需要再页面展示
+        if (StrUtil.equalsIgnoreCase(ComConstants.TMP_EXT_NAME, FileUtil.extName(target.getAbsPath()))) {
+            return;
+        }
+        // 输入文件也不需要广播,因为不需要再页面展示
+        if (StatusEnum.get(target.getStatus()).equals(StatusEnum.INPUTTING)) {
+            return;
+        }
+
+
+        // 传递到页面的信息用对象封装再转JSON
         CryptoWebSocketMessage message = CryptoWebSocketMessage.builder()
                 .type(CryptoWebSocketMessage.TypeEnum.TABLE_ROW_UPDATE.getName())
                 .data(target)
                 .build();
-        CompletableFuture.runAsync(() -> CryptoWebSocket.broadcast(JSONUtil.toJsonStr(message)));
+        // 走异步线程
+        CompletableFuture.runAsync(() -> CryptoWebSocket.broadcast(JSONUtil.toJsonStr(message))).exceptionally(e -> {
+            Optional.ofNullable(e).filter(Objects::nonNull).ifPresent(ex -> log.error("[WEBSOCKET]广播消息异常", ex));
+            return null;
+        });*/
     }
 
     /**
@@ -137,7 +148,12 @@ public class CryptoHelperService extends BaseService {
         // 临时文件路径生成成功,登记入缓存
         Blossom tmpBlossom = blossomCacheService.lockToGetOrDefault(tmpAbsPath);
         // 更新状态信息
-        updateCacheAndPublish(Blossom.builder().absPath(tmpAbsPath).status(StatusEnum.INPUTTING.getCode()).gmtUpdate(DateUtil.date()).build());
+        updateCacheAndPublish(Blossom.builder()
+                .absPath(tmpAbsPath)
+                .status(StatusEnum.INPUTTING.getCode())
+                .message(StatusEnum.INPUTTING.getMessage())
+                .gmtUpdate(DateUtil.date())
+                .build());
 
         // 记录上下文
         cryptoContext.setTmpPath(tmpAbsPath);
@@ -216,7 +232,7 @@ public class CryptoHelperService extends BaseService {
         if (!FileUtil.exist(absPath)) {
             // 说明文件不存在
             String idByPath = getIdByPath(absPath);
-            Blossom cacheMapValue = redisCache.getCacheMapValue(CacheConstants.BLOSSOM_MAP, idByPath);
+            Blossom cacheMapValue = redisMasterCache.getCacheMapValue(CacheConstants.BLOSSOM_MAP, idByPath);
             if (cacheMapValue == null) {
                 // 说明缓存中没有登记
                 return true;
@@ -266,7 +282,7 @@ public class CryptoHelperService extends BaseService {
      */
     protected void registerSalt(CryptoContext cryptoContext) {
         if (cryptoContext.getAskEncrypt()) {
-            // 要求加密,生成盐值
+            // 如果当前正在加密,直接生成随机盐值
             cryptoContext.setIntSalt(RandomUtil.randomInt(1, 3000));
             // 无需校验密码
         } else {
@@ -315,7 +331,7 @@ public class CryptoHelperService extends BaseService {
                 total += len;
 
                 // 流读取的频率是非常快的,如果每次都更新缓存和发布消息,会导致卡死,所以需要通过间隔时间控制频率
-                if (timer.intervalMs() > 1000L) {
+                if (timer.intervalMs() > 800L) {
                     // 计算当前百分比
                     Integer percentage = Convert.toInt(StrUtil.replaceLast(NumberUtil.formatPercent(NumberUtil.div(total, beforeSize, 4), 0), "%", ""));
                     // 消费
@@ -343,8 +359,13 @@ public class CryptoHelperService extends BaseService {
      */
     private BiConsumer<CryptoContext, Integer> getPercentageConsumer() {
         return (cryptoContext, percentage) -> {
-            // TODO
-            Console.error("[{}]当前百分比:{}", FileUtil.getName(cryptoContext.getBeforePath()), percentage);
+            Blossom blossom = Blossom.builder()
+                    .absPath(cryptoContext.getBeforePath())
+                    .percentage(percentage)
+                    .message(StrUtil.format("正在{}", cryptoContext.getAskEncrypt() ? "加密" : "解密"))
+                    .gmtUpdate(DateUtil.date())
+                    .build();
+            updateCacheAndPublish(blossom);
         };
     }
 
@@ -441,9 +462,9 @@ public class CryptoHelperService extends BaseService {
                 .builder()
                 .absPath(cryptoContext.getAfterPath())
                 .status(StatusEnum.FREE.getCode())
+                .message(StrUtil.format("{}成功,文件已生成", msgPiece))
                 .size(size)
                 .readableFileSize(FileUtil.readableFileSize(size))
-                .message(StrUtil.format("{}成功,文件已生成", msgPiece))
                 .gmtUpdate(DateUtil.date())
                 .build());
     }

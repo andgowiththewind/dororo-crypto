@@ -16,7 +16,7 @@ import java.util.Map;
 @Data
 @Component
 @ConfigurationProperties(prefix = "dororo-dynamic-redis")
-public class DynamicRedisProperties {
+public class RedisYmlProperties {
     // 参考{"master":{"host":"127.0.0.1","port":6379,"database":0,"password":"dororosheep.cn","timeout":5000,"lettuce":{"pool":{"minIdle":0,"maxIdle":8,"maxActive":8,"maxWait":-1}}},"slave":{"host":"127.0.0.1","port":6380,"database":0,"password":"","timeout":5000,"lettuce":{"pool":{"minIdle":0,"maxIdle":8,"maxActive":8,"maxWait":-1}}}}
     private Map<String, PropertyDTO> propertiesMap;
 

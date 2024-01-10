@@ -18,6 +18,7 @@ import org.springframework.stereotype.Component;
 public class ThreadPoolProperties {
     private PropDTO dispatcher;
     private PropDTO crypto;
+    private PropDTO stat;
 
 
     @Data

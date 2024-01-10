@@ -2,6 +2,8 @@ package com.dororo.future.dororocrypto.websocket;
 
 import cn.hutool.core.lang.Console;
 import cn.hutool.core.util.StrUtil;
+import cn.hutool.extra.spring.SpringUtil;
+import com.dororo.future.dororocrypto.service.StatService;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
 
@@ -67,8 +69,8 @@ public class CryptoWebSocket {
     public void onMessage(Session session, String message) {
         log.debug("[CRYPTO WEBSOCKET]收到客户端[ID={}]的消息:{}", sessionId, message);
 
-        // TODO 异步调用业务逻辑
-        Console.error("// TODO 异步调用业务逻辑");
+        StatService statService = SpringUtil.getBean(StatService.class);
+        statService.onMessage(sessionId, message);
     }
 
 

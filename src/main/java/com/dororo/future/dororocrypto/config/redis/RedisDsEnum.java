@@ -13,7 +13,12 @@ import lombok.Getter;
  */
 @Getter
 @AllArgsConstructor
-public enum RedisDataSourceType {
-    MASTER,
-    SLAVE,
+public enum RedisDsEnum {
+    MASTER("master"),
+    SLAVE("slave"),
+    ;
+    /**
+     * 数据源名称,需要与YML中配置的名称完全一致
+     */
+    private String value;
 }

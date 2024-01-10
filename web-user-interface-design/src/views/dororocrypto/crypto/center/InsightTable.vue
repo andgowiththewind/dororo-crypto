@@ -189,16 +189,16 @@ export default {
       if (this.cryptoWebSocketVo != null && this.cryptoWebSocketVo != undefined && this.cryptoWebSocketVo.readyState === WebSocket.OPEN) {
         // "WS已存在且已连接"无需重复构建
         devConsoleLog("WS已存在且已连接：" + this.cryptoWebSocketId);
-        return;
+        return true;
       }
       if (!this.sysParams.websocketUriPrefix) {
         console.error("WS前缀未配置");
-        return;
+        return false;
       }
       if (this.cryptoWebSocketPromise) {
         // 说明有其他线程正在构建WS
         devConsoleLog("有其他线程正在构建WS...")
-        return;
+        return false;
       } else {
         // 说明没有其他线程正在构建WS
         let sessionId = nanoid(18);
@@ -212,6 +212,7 @@ export default {
             // 连接建立成功
             this.cryptoWebSocketVo.onopen = () => {
               devConsoleLog(`[${sessionId}]-WS Connected`);
+              this.cryptoWebSocketId = sessionId;
               resolve(this.cryptoWebSocketVo);
             };
 
@@ -223,7 +224,7 @@ export default {
 
             // 接收到消息
             this.cryptoWebSocketVo.onmessage = (event) => {
-              // devConsoleLog(`[${sessionId}]-WS Received`, event.data);
+              devConsoleLog(`[${sessionId}]-WS Received`, event.data);
               this.cryptoWebSocketMessageDispatch(event.data);
             };
 
@@ -231,6 +232,7 @@ export default {
             this.cryptoWebSocketVo.onclose = () => {
               devConsoleLog(`[${sessionId}]-WS Closed`);
               this.cryptoWebSocketPromise = null; // 重置Promise
+              this.cryptoWebSocketId = null; // 重置ID
             };
           } catch (e) {
             devConsoleLog("WS Build Failed", e);
@@ -254,35 +256,56 @@ export default {
       });
     },
     cryptoWebSocketMessageDispatch(messageStr) {
-      let res = JSON.parse(messageStr);
+      let res = {};
+      try {
+        res = JSON.parse(messageStr);
+      } catch (e) {
+        devConsoleLog("WS接收接收字符串转换为对象失败", e);
+        return false;
+      }
       devConsoleLog("转换WS接收到的后台消息字符串为对象", res);
       if (!(res && res.code && res.code === 200)) {
         // 约定成功码为200
-        devConsoleLog("WS接收到的后台消息字符串转换为对象失败", res);
+        devConsoleLog("WS接收接收字符串转换为对象失败,状态码不正确", res);
         return false;
       }
-      // 如果是`tableRowUpdate`类型
-      if (res && res.type && res.type === 'tableRowUpdate') {
-        this.wsTableRowUpdate(res.data);
+      // 如果是`tableDataUpdate`类型
+      if (res && res.type && res.type === 'tableDataUpdate') {
+        this.wsTableDataUpdate(res.data);
       }
     },
     // 更新tableData中的数据
-    wsTableRowUpdate(tableRow) {
-      if (!(tableRow && tableRow.id)) {
-        devConsoleLog("WS接收到的后台消息字符串转换为对象失败", tableRow);
-        return false;
-      }
-      // 根据ID在tableData中定位对应的数据并更新
-      let tableData = this.insightTableVo.tableData;
-      let index = tableData.findIndex(item => item.id === tableRow.id);
-      if (index === -1) {
-        devConsoleLog("WS接收到的后台消息字符串转换为对象失败", tableRow);
-        return false;
-      }
-      // 更新
-      tableData.splice(index, 1, tableRow);
-      // 重新赋值
-      this.insightTableVo.tableData = tableData;
+    wsTableDataUpdate(tableData) {
+      // 更新`insightTableData`
+      let insightTableData = tableData.insightTableData;
+
+      let source = this.insightTableVo.tableData;
+      // source中行如果在结果集能找到对应,则更新
+      source.map(sourceItem => {
+        insightTableData.map(insightTableDataItem => {
+          if (sourceItem.id === insightTableDataItem.id) {
+            Object.assign(sourceItem, insightTableDataItem);
+          }
+        });
+      });
+
+      // 将进度表格的数据提交更新
+      let processTableData = tableData.processTableData;
+      this.$bus.$emit(methodConsts.PROCESS_TABLE_DATA_UPDATE, processTableData);
+    },
+    // 启动定时任务
+    scheduleStartUp() {
+      // 每隔N秒请求tableData
+      setInterval(() => {
+        if (this.buildCryptoWebSocket()) {
+          // 收集tableData的id
+          let tableDataIdList = [];
+          this.insightTableVo.tableData.map(item => {
+            tableDataIdList.push(item.id);
+          });
+          this.cryptoWebSocketVo.send(JSON.stringify({type: 'tableDataUpdate', data: tableDataIdList}));
+        }
+      }, 1500);
     },
   },
   watch: {},
@@ -292,6 +315,7 @@ export default {
     this.sysParamsInit();
     this.bufferSizeOptionsInit();
     this.test001();
+    this.scheduleStartUp();
   },
 }
 </script>

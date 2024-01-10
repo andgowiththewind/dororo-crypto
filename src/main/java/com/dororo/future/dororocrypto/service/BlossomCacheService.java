@@ -4,7 +4,7 @@ import cn.hutool.core.date.DateUtil;
 import cn.hutool.core.io.FileUtil;
 import cn.hutool.core.lang.Assert;
 import cn.hutool.core.util.StrUtil;
-import com.dororo.future.dororocrypto.components.RedisCache;
+import com.dororo.future.dororocrypto.components.RedisMasterCache;
 import com.dororo.future.dororocrypto.constant.CacheConstants;
 import com.dororo.future.dororocrypto.dto.Blossom;
 import com.dororo.future.dororocrypto.enums.StatusEnum;
@@ -31,7 +31,7 @@ import java.util.function.Supplier;
 @Service
 public class BlossomCacheService extends BaseService {
     @Autowired
-    private RedisCache redisCache;
+    private RedisMasterCache redisMasterCache;
     @Autowired
     private RedissonClient redissonClient;
 
@@ -92,7 +92,7 @@ public class BlossomCacheService extends BaseService {
      */
     public Supplier<Blossom> supplierGetOrDefault(String absPath) {
         Supplier<Blossom> supplier = () -> {
-            Blossom cacheVo = redisCache.getCacheMapValue(CacheConstants.BLOSSOM_MAP, getIdByPath(absPath));
+            Blossom cacheVo = redisMasterCache.getCacheMapValue(CacheConstants.BLOSSOM_MAP, getIdByPath(absPath));
             if (cacheVo != null) {
                 // 如果缓存中存在对应的文件信息,则直接返回
                 return cacheVo;
@@ -110,7 +110,7 @@ public class BlossomCacheService extends BaseService {
                         .readableFileSize(FileUtil.readableFileSize(FileUtil.size(FileUtil.file(absPath))))
                         .gmtUpdate(DateUtil.date())
                         .build();
-                redisCache.setCacheMapValue(CacheConstants.BLOSSOM_MAP, getIdByPath(absPath), insertVo);
+                redisMasterCache.setCacheMapValue(CacheConstants.BLOSSOM_MAP, getIdByPath(absPath), insertVo);
                 return insertVo;
             }
         };

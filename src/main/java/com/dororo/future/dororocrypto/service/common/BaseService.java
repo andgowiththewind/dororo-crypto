@@ -5,13 +5,11 @@ import cn.hutool.core.date.TimeInterval;
 import cn.hutool.core.lang.Assert;
 import cn.hutool.core.thread.ThreadUtil;
 import cn.hutool.core.util.NumberUtil;
-import cn.hutool.core.util.StrUtil;
 import cn.hutool.crypto.digest.DigestUtil;
-import com.dororo.future.dororocrypto.components.RedisCache;
+import com.dororo.future.dororocrypto.components.RedisMasterCache;
 import com.dororo.future.dororocrypto.exception.CryptoBusinessException;
 import com.dororo.future.dororocrypto.util.PathUtils;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.stereotype.Service;
 
 import java.util.Objects;
@@ -27,7 +25,7 @@ import java.util.function.Consumer;
 @Service
 public class BaseService {
     @Autowired
-    private RedisCache redisCache;
+    private RedisMasterCache redisMasterCache;
 
     /**
      * 根据绝对路径获取全局ID
@@ -49,13 +47,13 @@ public class BaseService {
      */
     protected void simpleAntiShake(String antiShakeKey) {
         Assert.notBlank(antiShakeKey);
-        String cacheObject = redisCache.getCacheObject(antiShakeKey);
+        String cacheObject = redisMasterCache.getCacheObject(antiShakeKey);
         if (cacheObject != null) {
             // 说明处于防抖期间
             throw new CryptoBusinessException("请求过于频繁,请稍后再试");
         } else {
             // 说明不处于防抖期间
-            redisCache.setCacheObject(antiShakeKey, "[提交加解密]接口：正在防抖", 1, TimeUnit.SECONDS);
+            redisMasterCache.setCacheObject(antiShakeKey, "[提交加解密]接口：正在防抖", 1, TimeUnit.SECONDS);
         }
     }
 

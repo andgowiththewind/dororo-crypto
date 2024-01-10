@@ -63,8 +63,9 @@ public class CryptoService extends CryptoHelperService {
                 .map(Blossom::getAbsPath)
                 .collect(Collectors.toList());
 
-        // 循环提交任务
+        // 循环提交任务到线程池
         for (String absPath : absPathList) {
+            // 定义全局上下文,此上下文对象会在各个阶段传递,异步线程采用thenRunAsync,确保按顺序执行
             CryptoContext cryptoContext = CryptoContext.builder()
                     .beforePath(absPath)
                     .askEncrypt(cryptoReqVo.getAskEncrypt())
@@ -111,7 +112,7 @@ public class CryptoService extends CryptoHelperService {
                 .absPath(cryptoContext.getBeforePath())
                 // 更新为加解密中
                 .status(StatusEnum.OUTPUTTING.getCode())
-                .message("成功进入工作线程,正在启动加解密")
+                .message(StrUtil.format("成功进入工作线程,正在启动{}", cryptoContext.getAskEncrypt() ? "加密" : "解密"))
                 .gmtUpdate(DateUtil.date())
                 .build());
 

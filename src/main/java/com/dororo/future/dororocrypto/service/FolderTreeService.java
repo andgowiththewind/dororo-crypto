@@ -3,7 +3,7 @@ package com.dororo.future.dororocrypto.service;
 import cn.hutool.core.collection.CollectionUtil;
 import cn.hutool.core.io.FileUtil;
 import cn.hutool.core.lang.Assert;
-import com.dororo.future.dororocrypto.components.RedisCache;
+import com.dororo.future.dororocrypto.components.RedisMasterCache;
 import com.dororo.future.dororocrypto.constant.CacheConstants;
 import com.dororo.future.dororocrypto.dto.FolderNode;
 import com.dororo.future.dororocrypto.exception.CryptoBusinessException;
@@ -23,7 +23,7 @@ import java.util.stream.Collectors;
 @Service
 public class FolderTreeService extends BaseService {
     @Autowired
-    private RedisCache redisCache;
+    private RedisMasterCache redisMasterCache;
 
     public List<FolderNode> getTreeData(String path) {
         // 合法性校验
@@ -55,13 +55,13 @@ public class FolderTreeService extends BaseService {
             throw new CryptoBusinessException(e.getMessage());
         }
         // 合法的情况下,将当前目录缓存到REDIS,先查出
-        List<String> beforeList = redisCache.getCacheMapValue(CacheConstants.SYS_PARAM_MAP, CacheConstants.SysParamHKey.TOP_DIRECTORY_PATH_OPTIONS);
+        List<String> beforeList = redisMasterCache.getCacheMapValue(CacheConstants.SYS_PARAM_MAP, CacheConstants.SysParamHKey.TOP_DIRECTORY_PATH_OPTIONS);
         beforeList = Optional.ofNullable(beforeList).orElse(new ArrayList<>());
         // 去重
         Set<String> collect = beforeList.stream().collect(Collectors.toSet());
         collect.add(path);
         List<String> afterList = collect.stream().map(String::trim).collect(Collectors.toList());
-        redisCache.setCacheMapValue(CacheConstants.SYS_PARAM_MAP, CacheConstants.SysParamHKey.TOP_DIRECTORY_PATH_OPTIONS, afterList);
+        redisMasterCache.setCacheMapValue(CacheConstants.SYS_PARAM_MAP, CacheConstants.SysParamHKey.TOP_DIRECTORY_PATH_OPTIONS, afterList);
     }
 
     private void recursivelyCollect(FolderNode fatherNode, List<FolderNode> result, AtomicInteger atomicId) {

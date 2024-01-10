@@ -11,4 +11,6 @@ public class ThreadPoolConstants {
     public static final String DISPATCH = "dispatch";
     // 处理加密解密实际操作线程池
     public static final String CRYPTO = "crypto";
+    // 统计线程池、发送WS消息
+    public static final String STAT = "stat";
 }

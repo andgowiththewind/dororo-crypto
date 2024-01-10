@@ -8,7 +8,7 @@ import cn.hutool.core.util.StrUtil;
 import cn.hutool.core.util.URLUtil;
 import cn.hutool.crypto.digest.DigestUtil;
 import cn.hutool.crypto.symmetric.AES;
-import com.dororo.future.dororocrypto.components.RedisCache;
+import com.dororo.future.dororocrypto.components.RedisMasterCache;
 import com.dororo.future.dororocrypto.constant.CacheConstants;
 import com.dororo.future.dororocrypto.exception.CryptoBusinessException;
 import com.dororo.future.dororocrypto.util.AesUtils;
@@ -35,7 +35,8 @@ import java.util.List;
 @Component
 public class PasswordFilter extends OncePerRequestFilter {
     @Autowired
-    private RedisCache redisCache;
+    private RedisMasterCache redisMasterCache;
+    
 
     @Override
     protected boolean shouldNotFilter(HttpServletRequest request) throws ServletException {
@@ -60,7 +61,7 @@ public class PasswordFilter extends OncePerRequestFilter {
         // 计算密码摘要
         String sha256Hex = DigestUtil.sha256Hex(userPassword);
         // 查询缓存中是否已经校验过该密码
-        PassCheckVo cacheVo = redisCache.getCacheMapValue(CacheConstants.PASS_CHECK_MAP, sha256Hex);
+        PassCheckVo cacheVo = redisMasterCache.getCacheMapValue(CacheConstants.PASS_CHECK_MAP, sha256Hex);
         // 如果缓存中存在
         if (cacheVo != null) {
             if (cacheVo.getCheck() != null && cacheVo.getCheck()) {
@@ -79,18 +80,18 @@ public class PasswordFilter extends OncePerRequestFilter {
             // 指定条件校验
             userPassValidate(userPassword);
 
-            // TODO 模拟一次加密解密,防止未知原因的错误
+            // 模拟一次加密解密,防止未知原因的错误
             simulateOnceCrypto(userPassword);
 
             // 校验通过,将校验结果记录到缓存中
-            redisCache.setCacheMapValue(CacheConstants.PASS_CHECK_MAP, sha256Hex, PassCheckVo.builder().sha256Key(sha256Hex).check(true).build());
-            redisCache.expire(CacheConstants.PASS_CHECK_MAP, 60 * 60 * 24 * 7);
+            redisMasterCache.setCacheMapValue(CacheConstants.PASS_CHECK_MAP, sha256Hex, PassCheckVo.builder().sha256Key(sha256Hex).check(true).build());
+            redisMasterCache.expire(CacheConstants.PASS_CHECK_MAP, 60 * 60 * 24 * 7);
             filterChain.doFilter(request, response);
             return;
         } catch (IllegalArgumentException e) {
             // 校验失败,同样记录错误信息到缓存中
-            redisCache.setCacheMapValue(CacheConstants.PASS_CHECK_MAP, sha256Hex, PassCheckVo.builder().sha256Key(sha256Hex).check(false).errorMessage(e.getMessage()).build());
-            redisCache.expire(CacheConstants.PASS_CHECK_MAP, 60 * 60 * 24 * 7);
+            redisMasterCache.setCacheMapValue(CacheConstants.PASS_CHECK_MAP, sha256Hex, PassCheckVo.builder().sha256Key(sha256Hex).check(false).errorMessage(e.getMessage()).build());
+            redisMasterCache.expire(CacheConstants.PASS_CHECK_MAP, 60 * 60 * 24 * 7);
             // 校验失败,直接抛出异常
             throw new CryptoBusinessException(e.getMessage());
         }

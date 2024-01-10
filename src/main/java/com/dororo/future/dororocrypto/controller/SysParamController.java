@@ -1,7 +1,6 @@
 package com.dororo.future.dororocrypto.controller;
 
 import cn.hutool.core.lang.Assert;
-import com.dororo.future.dororocrypto.components.RedisCache;
 import com.dororo.future.dororocrypto.service.SysParamService;
 import com.dororo.future.dororocrypto.vo.BaseMvcResponse;
 import org.springframework.beans.factory.annotation.Autowired;

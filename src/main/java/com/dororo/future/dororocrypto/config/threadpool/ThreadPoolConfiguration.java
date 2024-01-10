@@ -33,6 +33,12 @@ public class ThreadPoolConfiguration {
         return init(threadPoolProperties.getCrypto(), ThreadPoolConstants.CRYPTO);
     }
 
+    @Bean(value = ThreadPoolConstants.STAT)
+    public ThreadPoolTaskExecutor statExecutor() {
+        return init(threadPoolProperties.getStat(), ThreadPoolConstants.STAT);
+    }
+
+
     private ThreadPoolTaskExecutor init(ThreadPoolProperties.PropDTO paramsFromYml, String threadNamePrefix) {
         ThreadPoolTaskExecutor pool = new ThreadPoolTaskExecutor();
         // 核心线程数

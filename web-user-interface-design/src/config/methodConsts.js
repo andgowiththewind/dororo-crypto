@@ -4,3 +4,6 @@ export const FOLDER_PATH_UPDATE = 'folderPathUpdate';
 
 
 export const TEST_TEST_TEST = 'testTestTest';
+
+
+export const PROCESS_TABLE_DATA_UPDATE = 'processTableDataUpdate';

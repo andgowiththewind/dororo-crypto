@@ -1,7 +1,7 @@
 package com.dororo.future.dororocrypto.config.redisson;
 
-import com.dororo.future.dororocrypto.config.redis.DynamicRedisProperties;
-import com.dororo.future.dororocrypto.config.redis.RedisDataSourceType;
+import com.dororo.future.dororocrypto.config.redis.RedisYmlProperties;
+import com.dororo.future.dororocrypto.config.redis.RedisDsEnum;
 import lombok.extern.slf4j.Slf4j;
 import org.redisson.Redisson;
 import org.redisson.api.RedissonClient;
@@ -20,13 +20,13 @@ import org.springframework.context.annotation.Configuration;
 @Configuration
 public class RedissonClientConfiguration {
     @Autowired
-    private DynamicRedisProperties dynamicRedisProperties;
+    private RedisYmlProperties redisYmlProperties;
 
 
     @Bean(destroyMethod = "shutdown")
     public RedissonClient redissonClient() {
         // 当前系统为单机模式,从主从配置信息中获取主节点的配置信息
-        DynamicRedisProperties.PropertyDTO master = dynamicRedisProperties.getPropertiesMap().get(RedisDataSourceType.MASTER.name().toLowerCase());
+        RedisYmlProperties.PropertyDTO master = redisYmlProperties.getPropertiesMap().get(RedisDsEnum.MASTER.name().toLowerCase());
 
         // 创建 Redisson 配置
         Config config = new Config();
