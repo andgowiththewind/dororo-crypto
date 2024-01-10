@@ -76,6 +76,7 @@
 
 <script>
 import {Notification, MessageBox, Message, Loading} from 'element-ui';
+import {nanoid} from 'nanoid';
 import * as methodConsts from '@/config/methodConsts';
 import {devConsoleLog, getSysParam} from "@/utils/dororoUtils";
 import {checkSecretKeyFn, cryptoSubmitFn, rowStyleFn, cellStyleFn, headerCellStyleFn} from "@/api/insightTableApi";
@@ -99,6 +100,11 @@ export default {
       folderPathCopy: process.env.VUE_APP_DEV_FOLDER_PATH || '',
       userPassword: process.env.VUE_APP_TEST_KEY || '',
       bufferSize: 1024,
+      // WS实例
+      cryptoWebSocketId: null,
+      cryptoWebSocketVo: null,
+      // 用于跟踪WebSocket连接状态的Promise,防止重复构建
+      cryptoWebSocketPromise: null,
     }
   },
   methods: {
@@ -147,6 +153,15 @@ export default {
         }
         this.sysParams = Object.assign({}, this.sysParams, {encryptedPrefix: res.data});
       });
+
+      getSysParam('websocketUriPrefix').then(res => {
+        if (!res.data) {
+          Notification({title: '系统参数', message: '系统参数获取失败:WS前缀', type: 'error', duration: 2000, position: 'bottom-right'});
+          return;
+        }
+        this.sysParams = Object.assign({}, this.sysParams, {websocketUriPrefix: res.data});
+      });
+
     },
     hadBeenEncrypted(blossomName) {
       return blossomName && blossomName.startsWith(this.sysParams.encryptedPrefix);
@@ -169,6 +184,106 @@ export default {
         this.sysParams.bufferSizeOptions.push({label: item * 1024, value: item * 1024});
       });
     },
+    // 构建WS
+    buildCryptoWebSocket() {
+      if (this.cryptoWebSocketVo != null && this.cryptoWebSocketVo != undefined && this.cryptoWebSocketVo.readyState === WebSocket.OPEN) {
+        // "WS已存在且已连接"无需重复构建
+        devConsoleLog("WS已存在且已连接：" + this.cryptoWebSocketId);
+        return;
+      }
+      if (!this.sysParams.websocketUriPrefix) {
+        console.error("WS前缀未配置");
+        return;
+      }
+      if (this.cryptoWebSocketPromise) {
+        // 说明有其他线程正在构建WS
+        devConsoleLog("有其他线程正在构建WS...")
+        return;
+      } else {
+        // 说明没有其他线程正在构建WS
+        let sessionId = nanoid(18);
+        const url = `${this.sysParams.websocketUriPrefix}/cryptoWebSocket/${sessionId}`;
+        // 构建Promise
+        this.cryptoWebSocketPromise = new Promise((resolve, reject) => {
+          try {
+            devConsoleLog("WS Building...");
+            this.cryptoWebSocketVo = new WebSocket(url);
+
+            // 连接建立成功
+            this.cryptoWebSocketVo.onopen = () => {
+              devConsoleLog(`[${sessionId}]-WS Connected`);
+              resolve(this.cryptoWebSocketVo);
+            };
+
+            // 连接建立失败
+            this.cryptoWebSocketVo.onerror = (error) => {
+              devConsoleLog(`[${sessionId}]-WS Connect Failed`);
+              reject(error);
+            };
+
+            // 接收到消息
+            this.cryptoWebSocketVo.onmessage = (event) => {
+              // devConsoleLog(`[${sessionId}]-WS Received`, event.data);
+              this.cryptoWebSocketMessageDispatch(event.data);
+            };
+
+            // 连接关闭
+            this.cryptoWebSocketVo.onclose = () => {
+              devConsoleLog(`[${sessionId}]-WS Closed`);
+              this.cryptoWebSocketPromise = null; // 重置Promise
+            };
+          } catch (e) {
+            devConsoleLog("WS Build Failed", e);
+            reject(e);
+          }
+        });
+
+        // 处理Promise完成和异常
+        this.cryptoWebSocketPromise.then(ws => {
+          devConsoleLog("WS Promise Resolved");
+        }).catch(error => {
+          devConsoleLog("WS Promise Rejected", error);
+          this.cryptoWebSocketPromise = null; // 重置Promise
+        });
+      }
+    },
+    test001() {
+      this.$bus.$on(methodConsts.TEST_TEST_TEST, (data) => {
+        devConsoleLog('TEST_TEST_TEST', data);
+        this.buildCryptoWebSocket();
+      });
+    },
+    cryptoWebSocketMessageDispatch(messageStr) {
+      let res = JSON.parse(messageStr);
+      devConsoleLog("转换WS接收到的后台消息字符串为对象", res);
+      if (!(res && res.code && res.code === 200)) {
+        // 约定成功码为200
+        devConsoleLog("WS接收到的后台消息字符串转换为对象失败", res);
+        return false;
+      }
+      // 如果是`tableRowUpdate`类型
+      if (res && res.type && res.type === 'tableRowUpdate') {
+        this.wsTableRowUpdate(res.data);
+      }
+    },
+    // 更新tableData中的数据
+    wsTableRowUpdate(tableRow) {
+      if (!(tableRow && tableRow.id)) {
+        devConsoleLog("WS接收到的后台消息字符串转换为对象失败", tableRow);
+        return false;
+      }
+      // 根据ID在tableData中定位对应的数据并更新
+      let tableData = this.insightTableVo.tableData;
+      let index = tableData.findIndex(item => item.id === tableRow.id);
+      if (index === -1) {
+        devConsoleLog("WS接收到的后台消息字符串转换为对象失败", tableRow);
+        return false;
+      }
+      // 更新
+      tableData.splice(index, 1, tableRow);
+      // 重新赋值
+      this.insightTableVo.tableData = tableData;
+    },
   },
   watch: {},
   mounted() {
@@ -176,6 +291,7 @@ export default {
     this.folderPathUpdateBinding();
     this.sysParamsInit();
     this.bufferSizeOptionsInit();
+    this.test001();
   },
 }
 </script>

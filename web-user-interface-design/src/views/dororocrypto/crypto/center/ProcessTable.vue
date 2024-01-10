@@ -1,13 +1,17 @@
 <template>
   <div>
-    ProcessTable.vue
+    <div class="process-show-btn" @click="showProcessDrawer">
+      <el-tooltip effect="dark" content="查看进度" placement="top">
+        <span><i class="fa fa-table"></i></span>
+      </el-tooltip>
+    </div>
   </div>
 </template>
 
 <script>
 import {Notification, MessageBox, Message, Loading} from 'element-ui';
-// import request from '@/utils/request'// 示例
-// import {SECRET_KEY} from '@/config/headerKeyNameConstants'// 示例
+import * as methodConsts from '@/config/methodConsts';
+
 
 export default {
   // 请注意这里的.vue后缀需要去掉
@@ -16,7 +20,12 @@ export default {
   data() {
     return {}
   },
-  methods: {},
+  methods: {
+    showProcessDrawer() {
+      // 测试
+      this.$bus.$emit(methodConsts.TEST_TEST_TEST, true);
+    },
+  },
   watch: {
     // 示例
     // 'searchParamVo.topPath': function (newValue, oldValue) {this.paginationVo.pageNum = 1;this.tableVo.tableData.length = 0;this.tableVo.tableData = [];},
@@ -28,5 +37,17 @@ export default {
 </script>
 
 <style scoped>
-/* .foot-text {color: rgba(0, 0, 0, 0.15);position: fixed;bottom: 30px;left: 35vw;} */
+.process-show-btn {
+  opacity: 25%;
+  color: #0B61A4;
+  position: fixed;
+  left: 10px;
+  bottom: 10px;
+  font-size: 70px;
+}
+
+.process-show-btn:hover {
+  opacity: 100%;
+  color: rgb(0, 133, 125);
+}
 </style>

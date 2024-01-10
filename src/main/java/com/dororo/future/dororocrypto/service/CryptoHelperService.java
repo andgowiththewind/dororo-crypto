@@ -15,6 +15,7 @@ import cn.hutool.core.util.NumberUtil;
 import cn.hutool.core.util.RandomUtil;
 import cn.hutool.core.util.StrUtil;
 import cn.hutool.crypto.digest.DigestUtil;
+import cn.hutool.json.JSONUtil;
 import com.dororo.future.dororocrypto.components.RedisCache;
 import com.dororo.future.dororocrypto.constant.CacheConstants;
 import com.dororo.future.dororocrypto.constant.ComConstants;
@@ -25,7 +26,9 @@ import com.dororo.future.dororocrypto.exception.CryptoBusinessException;
 import com.dororo.future.dororocrypto.service.common.BaseService;
 import com.dororo.future.dororocrypto.util.AesUtils;
 import com.dororo.future.dororocrypto.util.PathUtils;
+import com.dororo.future.dororocrypto.vo.common.CryptoWebSocketMessage;
 import com.dororo.future.dororocrypto.vo.common.EncryptedNameVo;
+import com.dororo.future.dororocrypto.websocket.CryptoWebSocket;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
@@ -37,6 +40,7 @@ import java.util.ArrayList;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Optional;
+import java.util.concurrent.CompletableFuture;
 import java.util.function.BiConsumer;
 import java.util.function.Consumer;
 import java.util.stream.Collectors;
@@ -97,10 +101,13 @@ public class CryptoHelperService extends BaseService {
         BeanUtil.copyProperties(source, target, CopyOptions.create().setIgnoreNullValue(true));
         // 更新缓存
         redisCache.setCacheMapValue(CacheConstants.BLOSSOM_MAP, target.getId(), target);
+
         // TODO 发布消息
-
-        Console.error(target.getMessage());
-
+        CryptoWebSocketMessage message = CryptoWebSocketMessage.builder()
+                .type(CryptoWebSocketMessage.TypeEnum.TABLE_ROW_UPDATE.getName())
+                .data(target)
+                .build();
+        CompletableFuture.runAsync(() -> CryptoWebSocket.broadcast(JSONUtil.toJsonStr(message)));
     }
 
     /**

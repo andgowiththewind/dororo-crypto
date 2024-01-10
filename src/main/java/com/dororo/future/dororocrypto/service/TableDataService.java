@@ -69,7 +69,7 @@ public class TableDataService {
                 return false;
             }
             // 根据文件名判断是否曾经由当前系统加密
-            boolean encryptedByThis = StrUtil.isNotBlank(name) && StrUtil.equalsIgnoreCase(name, ComConstants.ENCRYPTED_PREFIX);
+            boolean encryptedByThis = StrUtil.isNotBlank(name) && StrUtil.startWithIgnoreCase(name, ComConstants.ENCRYPTED_PREFIX);
             Integer cryptoStatus = reqVo.getParams().getCryptoStatus();
             if (NumberUtil.compare(cryptoStatus, CryptoStatusEnum.ALL.getCode()) == 0) {
                 // 用户期望全选,无需过滤

@@ -1,5 +1,6 @@
 package com.dororo.future.dororocrypto.runner;
 
+import cn.hutool.core.util.StrUtil;
 import cn.hutool.json.JSONObject;
 import cn.hutool.json.JSONUtil;
 import com.dororo.future.dororocrypto.components.RedisCache;
@@ -9,6 +10,7 @@ import com.dororo.future.dororocrypto.enums.CryptoStatusEnum;
 import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.ApplicationArguments;
 import org.springframework.boot.ApplicationRunner;
 import org.springframework.stereotype.Component;
@@ -28,11 +30,18 @@ import java.util.stream.Collectors;
 public class sysParamsInitRunner implements ApplicationRunner {
     @Autowired
     private RedisCache redisCache;
+    @Value("${server.port}")
+    private Integer port;
 
     @Override
     public void run(ApplicationArguments args) throws Exception {
         setCryptoStatusOptions();
         setEncryptedPrefix();
+        setWebsocketUriPrefix();
+    }
+
+    private void setWebsocketUriPrefix() {
+        redisCache.setCacheMapValue(CacheConstants.SYS_PARAM_MAP, CacheConstants.SysParamHKey.WEBSOCKET_URI_PREFIX, StrUtil.format("ws://localhost:{}", port));
     }
 
     private void setEncryptedPrefix() {

@@ -51,18 +51,6 @@ public class CryptoService extends CryptoHelperService {
     private BlossomCacheService blossomCacheService;
 
     /**
-     * 简单防抖
-     */
-    public void missionSimpleAntiShake(CryptoReqVo cryptoReqVo) {
-        // reqVo忽略空值后转字符串,然后通过摘要算法计算对应的防抖缓存KEY
-        String jsonStr = JSONUtil.toJsonStr(cryptoReqVo, JSONConfig.create().setIgnoreNullValue(true));
-        Assert.notBlank(jsonStr, "传参不能为空");
-        // 防抖缓存KEY
-        String antiShakeKey = StrUtil.format("{}:{}", CacheConstants.MISSION_ANTI_SHAKE, DigestUtil.sha256Hex(jsonStr));
-        super.simpleAntiShake(antiShakeKey);
-    }
-
-    /**
      * 处理加解密提交
      */
     @CryptoLog("统计加解密提交")
@@ -197,5 +185,17 @@ public class CryptoService extends CryptoHelperService {
         }
 
         return result;
+    }
+
+    /**
+     * 简单防抖
+     */
+    public void missionSimpleAntiShake(CryptoReqVo cryptoReqVo) {
+        // reqVo忽略空值后转字符串,然后通过摘要算法计算对应的防抖缓存KEY
+        String jsonStr = JSONUtil.toJsonStr(cryptoReqVo, JSONConfig.create().setIgnoreNullValue(true));
+        Assert.notBlank(jsonStr, "传参不能为空");
+        // 防抖缓存KEY
+        String antiShakeKey = StrUtil.format("{}:{}", CacheConstants.MISSION_ANTI_SHAKE, DigestUtil.sha256Hex(jsonStr));
+        super.simpleAntiShake(antiShakeKey);
     }
 }

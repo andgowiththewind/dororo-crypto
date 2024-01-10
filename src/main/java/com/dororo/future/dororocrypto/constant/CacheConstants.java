@@ -31,6 +31,7 @@ public class CacheConstants {
         public static String CRYPTO_STATUS_OPTIONS = "cryptoStatusOptions";
         public static String TOP_DIRECTORY_PATH_OPTIONS = "topDirectoryPathOptions";
         public static final String ENCRYPTED_PREFIX = "encryptedPrefix";
+        public static final String WEBSOCKET_URI_PREFIX = "websocketUriPrefix";
     }
 
     // 操作Blossom增删改时,分布式锁锁前缀
