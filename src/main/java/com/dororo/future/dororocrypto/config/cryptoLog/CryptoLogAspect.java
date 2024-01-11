@@ -43,7 +43,6 @@ public class CryptoLogAspect {
         boolean methodMatch = "cryptoSubmitSync".equals(joinPoint.getSignature().getName());
         if (classMatch && methodMatch) {
             // TODO 类名和方法名都匹配正确,说明调用的是我们期望的统计方法
-            Console.error("TODO 类名和方法名都匹配正确,说明调用的是我们期望的统计方法");
         }
     }
 
@@ -64,6 +63,7 @@ public class CryptoLogAspect {
      */
     @AfterReturning(pointcut = "execution(* com.dororo.future.dororocrypto.service.CryptoService.cryptoSubmitSync(..))", returning = "result")
     public void logAfterReturning(Object result) {
+        // TODO
         System.out.println("Method returned value is : " + result);
     }
 }

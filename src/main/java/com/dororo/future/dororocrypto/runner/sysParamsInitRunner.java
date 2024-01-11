@@ -7,8 +7,8 @@ import com.dororo.future.dororocrypto.components.RedisMasterCache;
 import com.dororo.future.dororocrypto.constant.CacheConstants;
 import com.dororo.future.dororocrypto.constant.ComConstants;
 import com.dororo.future.dororocrypto.enums.CryptoStatusEnum;
+import com.dororo.future.dororocrypto.service.SysParamService;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.ApplicationArguments;
 import org.springframework.boot.ApplicationRunner;
@@ -27,8 +27,6 @@ import java.util.stream.Collectors;
 @Slf4j
 @Component
 public class sysParamsInitRunner implements ApplicationRunner {
-    @Autowired
-    private RedisMasterCache redisMasterCache;
     @Value("${server.port}")
     private Integer port;
 
@@ -40,17 +38,21 @@ public class sysParamsInitRunner implements ApplicationRunner {
     }
 
     private void setWebsocketUriPrefix() {
-        redisMasterCache.setCacheMapValue(CacheConstants.SYS_PARAM_MAP, CacheConstants.SysParamHKey.WEBSOCKET_URI_PREFIX, StrUtil.format("ws://localhost:{}", port));
+        String key = CacheConstants.SysParamHKey.WEBSOCKET_URI_PREFIX;
+        String value = StrUtil.format("ws://localhost:{}", port);
+        SysParamService.setSysParam(key, value);
     }
 
     private void setEncryptedPrefix() {
-        redisMasterCache.setCacheMapValue(CacheConstants.SYS_PARAM_MAP, CacheConstants.SysParamHKey.ENCRYPTED_PREFIX, ComConstants.ENCRYPTED_PREFIX);
+        String key = CacheConstants.SysParamHKey.ENCRYPTED_PREFIX;
+        String value = ComConstants.ENCRYPTED_PREFIX;
+        SysParamService.setSysParam(key, value);
     }
 
     private void setCryptoStatusOptions() {
         List<JSONObject> options = Arrays.stream(CryptoStatusEnum.values())
                 .map(statusEnum -> JSONUtil.createObj().putOpt("code", statusEnum.getCode()).putOpt("name", statusEnum.getName()))
                 .collect(Collectors.toList());
-        redisMasterCache.setCacheMapValue(CacheConstants.SYS_PARAM_MAP, CacheConstants.SysParamHKey.CRYPTO_STATUS_OPTIONS, options);
+        SysParamService.setSysParam(CacheConstants.SysParamHKey.CRYPTO_STATUS_OPTIONS, options);
     }
 }

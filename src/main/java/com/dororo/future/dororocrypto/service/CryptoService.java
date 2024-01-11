@@ -11,11 +11,13 @@ import cn.hutool.json.JSONConfig;
 import cn.hutool.json.JSONUtil;
 import com.dororo.future.dororocrypto.config.cryptoLog.CryptoLog;
 import com.dororo.future.dororocrypto.constant.CacheConstants;
+import com.dororo.future.dororocrypto.constant.ComConstants;
 import com.dororo.future.dororocrypto.constant.ThreadPoolConstants;
 import com.dororo.future.dororocrypto.dto.Blossom;
 import com.dororo.future.dororocrypto.dto.CryptoContext;
 import com.dororo.future.dororocrypto.enums.StatusEnum;
 import com.dororo.future.dororocrypto.exception.CryptoBusinessException;
+import com.dororo.future.dororocrypto.util.NanoIdUtils;
 import com.dororo.future.dororocrypto.vo.req.CryptoReqVo;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -30,6 +32,7 @@ import java.util.List;
 import java.util.concurrent.CompletableFuture;
 import java.util.function.Function;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 /**
  * 加解密服务
@@ -58,10 +61,28 @@ public class CryptoService extends CryptoHelperService {
         // 期望处理的文件集合
         List<Blossom> expectList = getBlossomList(cryptoReqVo);
 
-        // 仅空闲状态的文件才能被加解密
-        List<String> absPathList = expectList.stream().filter(blossom -> StatusEnum.get(blossom.getStatus()).equals(StatusEnum.FREE))
-                .map(Blossom::getAbsPath)
-                .collect(Collectors.toList());
+        // 一些判断不需要放在加解密阶段
+        List<String> absPathList = expectList.stream()
+                // 仅空闲状态的文件才能被加解密
+                .filter(blossom -> StatusEnum.get(blossom.getStatus()).equals(StatusEnum.FREE))
+                // 如果是加密任务,排除已经加密过的文件;如果是解密任务,排除未加密过的文件
+                .filter(b -> {
+                    boolean hadEncrypt = StrUtil.startWithIgnoreCase(FileUtil.getName(b.getAbsPath()), ComConstants.ENCRYPTED_PREFIX);
+                    if (cryptoReqVo.getAskEncrypt()) {
+                        if (hadEncrypt) {
+                            // 如果是加密任务,排除已经加密过的文件
+                            updateCacheAndPublish(Blossom.builder().absPath(b.getAbsPath()).message(StrUtil.format("文件已经加密过,无需重复加密")).gmtUpdate(DateUtil.date()).build());
+                            return false;
+                        }
+                    } else {
+                        if (!hadEncrypt) {
+                            // 如果是解密任务,排除未加密过的文件
+                            updateCacheAndPublish(Blossom.builder().absPath(b.getAbsPath()).message(StrUtil.format("文件未加密过,无需解密")).gmtUpdate(DateUtil.date()).build());
+                            return false;
+                        }
+                    }
+                    return true;
+                }).map(m -> m.getAbsPath()).collect(Collectors.toList());
 
         // 循环提交任务到线程池
         for (String absPath : absPathList) {
@@ -81,7 +102,13 @@ public class CryptoService extends CryptoHelperService {
 
 
         // TODO 任务统计
-        return null;
+        String string = JSONUtil.createObj()
+                .putOpt("startTime", DateUtil.date())
+                .putOpt("entTime", null)
+                .putOpt("missionId", NanoIdUtils.randomLowercaseNanoId())
+                .putOpt("jobCount", absPathList.size())
+                .toString();
+        return string;
     }
 
     private void handlePrepareAsync(CryptoContext cryptoContext) {

@@ -67,7 +67,7 @@ public class CryptoWebSocket {
      */
     @OnMessage
     public void onMessage(Session session, String message) {
-        log.debug("[CRYPTO WEBSOCKET]收到客户端[ID={}]的消息:{}", sessionId, message);
+        // log.debug("[CRYPTO WEBSOCKET]收到客户端[ID={}]的消息:{}", sessionId, message);
 
         StatService statService = SpringUtil.getBean(StatService.class);
         statService.onMessage(sessionId, message);

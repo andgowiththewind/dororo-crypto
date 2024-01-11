@@ -20,11 +20,9 @@ public class CryptoWebSocketMessage {
 
     @Getter
     @AllArgsConstructor
-    public static enum TypeEnum {
+    public enum TypeEnum {
         // 更新表格数据
         TABLE_DATA_UPDATE("tableDataUpdate");
-
-
         /**
          * 类型名称
          */

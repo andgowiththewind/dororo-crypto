@@ -3,9 +3,7 @@ package com.dororo.future.dororocrypto.runner;
 import cn.hutool.core.collection.ListUtil;
 import cn.hutool.core.date.DateUtil;
 import cn.hutool.core.io.FileUtil;
-import cn.hutool.core.lang.Console;
 import com.dororo.future.dororocrypto.util.PathUtils;
-import com.sun.org.apache.xpath.internal.operations.Bool;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.ApplicationArguments;
 import org.springframework.boot.ApplicationRunner;
@@ -29,6 +27,12 @@ public class DevRunner implements ApplicationRunner {
         if (!(devIng != null && devIng)) {
             return;
         }
+        // prepareDevFiles();
+
+
+    }
+
+    private static void prepareDevFiles() {
         // 如果是开发环境,准备一些测试文件
         String folder = PathUtils.rightJoin(PathUtils.desktop(), "测试目录");
         if (!(FileUtil.exist(folder) && FileUtil.isDirectory(folder))) {
@@ -42,7 +46,5 @@ public class DevRunner implements ApplicationRunner {
             }
             FileUtil.writeUtf8String("测试文件内容" + DateUtil.now(), filePath);
         });
-
-
     }
 }

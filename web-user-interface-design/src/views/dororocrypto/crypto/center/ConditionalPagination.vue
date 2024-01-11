@@ -101,6 +101,8 @@ export default {
       this.$bus.$on(methodConsts.TREE_NODE_CLICK_EVENT, (folderPath) => {
         this.$nextTick(() => {
           this.conditionVo.params.folderPath = folderPath;
+          // 此场景可以触发请求
+          this.submitConditionPagingQuery();
         });
       });
     },

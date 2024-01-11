@@ -1,5 +1,6 @@
 package com.dororo.future.dororocrypto.util;
 
+import cn.hutool.core.lang.Assert;
 import cn.hutool.core.lang.id.NanoId;
 
 /**
@@ -23,7 +24,18 @@ public class NanoIdUtils {
         return NanoId.randomNanoId(null, NUMERIC_LOWERCASE_ALPHABET, DEFAULT_LENGTH);
     }
 
+    public static String randomLowercaseNanoId(Integer size) {
+        Assert.isTrue(size != null && size > 0, "随机字符串长度必须大于0");
+        return NanoId.randomNanoId(null, NUMERIC_LOWERCASE_ALPHABET, size);
+    }
+
+
     public static String randomUppercaseNanoId() {
         return NanoId.randomNanoId(null, NUMERIC_UPPERCASE_ALPHABET, DEFAULT_LENGTH);
+    }
+
+    public static String randomUppercaseNanoId(Integer size) {
+        Assert.isTrue(size != null && size > 0, "随机字符串长度必须大于0");
+        return NanoId.randomNanoId(null, NUMERIC_UPPERCASE_ALPHABET, size);
     }
 }

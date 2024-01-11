@@ -9,9 +9,11 @@ import cn.hutool.core.date.TimeInterval;
 import cn.hutool.core.io.FileUtil;
 import cn.hutool.core.io.IoUtil;
 import cn.hutool.core.lang.Assert;
+import cn.hutool.core.lang.Console;
 import cn.hutool.core.thread.ThreadUtil;
 import cn.hutool.core.util.NumberUtil;
 import cn.hutool.core.util.RandomUtil;
+import cn.hutool.core.util.ReUtil;
 import cn.hutool.core.util.StrUtil;
 import cn.hutool.crypto.digest.DigestUtil;
 import com.dororo.future.dororocrypto.components.RedisMasterCache;
@@ -23,9 +25,14 @@ import com.dororo.future.dororocrypto.enums.StatusEnum;
 import com.dororo.future.dororocrypto.exception.CryptoBusinessException;
 import com.dororo.future.dororocrypto.service.common.BaseService;
 import com.dororo.future.dororocrypto.util.AesUtils;
+import com.dororo.future.dororocrypto.util.NanoIdUtils;
 import com.dororo.future.dororocrypto.util.PathUtils;
 import com.dororo.future.dororocrypto.vo.common.EncryptedNameVo;
+import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
+import org.redisson.api.RLock;
+import org.redisson.api.RedissonClient;
+import org.springframework.beans.factory.FactoryBean;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
@@ -33,6 +40,7 @@ import java.io.BufferedInputStream;
 import java.io.BufferedOutputStream;
 import java.io.File;
 import java.util.*;
+import java.util.concurrent.TimeUnit;
 import java.util.function.BiConsumer;
 import java.util.function.Consumer;
 import java.util.stream.Collectors;
@@ -50,6 +58,8 @@ public class CryptoHelperService extends BaseService {
     private RedisMasterCache redisMasterCache;
     @Autowired
     private BlossomCacheService blossomCacheService;
+    @Autowired
+    private RedissonClient redissonClient;
 
 
     protected void validateBeforeCrypto(CryptoContext cryptoContext) {
@@ -169,14 +179,15 @@ public class CryptoHelperService extends BaseService {
         String afterName = null;
         String afterPath = null;
         if (cryptoContext.getAskEncrypt()) {
+
             // 如果是加密,拼接加密后的文件名
             afterName = EncryptedNameVo.concat(EncryptedNameVo.builder()
                     // 密码摘要算法密文
                     .encryptedPassword(DigestUtil.sha256Hex(cryptoContext.getUserPassword()))
                     // 整数盐对称加密密文
                     .encryptedSalt(AesUtils.getAes(cryptoContext.getUserPassword()).encryptHex(Convert.toStr(cryptoContext.getIntSalt(), null)))
-                    // 原文件名
-                    .sourceName(FileUtil.getName(cryptoContext.getBeforePath()))
+                    // 原文件名,如果有重命名标记,优化去掉
+                    .sourceName(removeDuplicateMarkerIfExist(FileUtil.getName(cryptoContext.getBeforePath())))
                     .build()
             );
 
@@ -185,40 +196,101 @@ public class CryptoHelperService extends BaseService {
 
             // 目标文件要求文件不存在且缓存中没有登记
             afterPath = PathUtils.leftJoin(FileUtil.getParent(cryptoContext.getBeforePath(), 1), afterName);
+            // 由于有随机整数盐的存在,当前场景基本不用考虑重名问题,万一存在,直接中断任务然后买彩票
             Assert.isTrue(notExistAndNotRegister(afterPath), "加密后的文件已经存在,本次加密任务终止,请稍后重试");
-            // 登记入缓存
+            // 马上登记入缓存
             Blossom afterBlossom = blossomCacheService.lockToGetOrDefault(afterPath);
             // 更新状态信息
             updateCacheAndPublish(Blossom.builder().absPath(afterPath).status(StatusEnum.INPUTTING.getCode()).gmtUpdate(DateUtil.date()).build());
             // 及时记录上下文
             cryptoContext.setAfterPath(afterPath);
         } else {
-            // 如果是解密,需要截取源文件名,然后判断是否存在同名文件或者在缓存中被登记(假设多个加密文件解压缩后的文件名都一样),如果存在,需要重命名
-            EncryptedNameVo nameVo = EncryptedNameVo.analyse(FileUtil.getName(cryptoContext.getBeforePath()), cryptoContext.getUserPassword());
-            afterName = nameVo.getSourceName();
-            afterPath = PathUtils.leftJoin(FileUtil.getParent(cryptoContext.getBeforePath(), 1), afterName);
-
-            TimeInterval timer = DateUtil.timer();
-            while (!notExistAndNotRegister(afterPath)) {
-                if (NumberUtil.compare(timer.intervalMs(), 5000L) >= 0) {
-                    throw new CryptoBusinessException(StrUtil.format("解密后的文件超时[{}ms]创建失败,请稍后重试", 5000L));
-                }
-                // 说明文件已经存在,需要重命名,增加一些随机数,需要考虑源文件名是否有扩展名的情况
-                afterName = StrUtil.format("{}_{}{}{}"
-                        , FileUtil.mainName(nameVo.getSourceName())
-                        , RandomUtil.randomInt(1, 3000)
-                        , StrUtil.isNotBlank(FileUtil.extName(nameVo.getSourceName())) ? "." : ""
-                        , FileUtil.extName(nameVo.getSourceName())
-                );
-                afterPath = PathUtils.leftJoin(FileUtil.getParent(cryptoContext.getBeforePath(), 1), afterName);
-            }
-
-            // 登记入缓存
-            Blossom afterBlossom = blossomCacheService.lockToGetOrDefault(afterPath);
-            // 更新状态信息
-            updateCacheAndPublish(Blossom.builder().absPath(afterPath).status(StatusEnum.INPUTTING.getCode()).gmtUpdate(DateUtil.date()).build());
+            // 如果是解密,从加密文件文件名中截取源文件名,考虑到多个加密文件可能同时解锁出同名文件的场景,需要加锁处理
+            Blossom afterBlossom = lockGetAfterBlossom(cryptoContext);
+            Assert.notNull(afterBlossom);
             // 及时记录上下文
-            cryptoContext.setAfterPath(afterPath);
+            cryptoContext.setAfterPath(afterBlossom.getAbsPath());
+        }
+    }
+
+    /**
+     * 原文件名优化,去掉曾经加密时加上的重名标记
+     *
+     * @see ComConstants#DUPLICATE_NAME_MARKER_TEMPLATE
+     */
+    private String removeDuplicateMarkerIfExist(String fileName) {
+        String mainName = FileUtil.mainName(fileName);
+        if (StrUtil.isBlank(mainName)) {
+            return fileName;
+        }
+
+        // 定义正则表达式
+        String pattern = "\\$#重名标记[a-zA-Z0-9]{5}#\\$";
+        String cleaned = ReUtil.delFirst(pattern, fileName);
+
+        return cleaned;
+    }
+
+    /**
+     * 加锁生成解密后文件缓存信息
+     */
+    @SneakyThrows
+    private Blossom lockGetAfterBlossom(CryptoContext cryptoContext) {
+        // String lockKey = StrUtil.format("{}:{}", CacheConstants.PREFIX_LOCK_AFTER_NAME_GENERATE, getIdByPath(cryptoContext.getBeforePath()));
+        // 将原文件名从加密文件中提取出来
+        EncryptedNameVo nameVo = EncryptedNameVo.analyse(FileUtil.getName(cryptoContext.getBeforePath()), cryptoContext.getUserPassword());
+        String afterName = nameVo.getSourceName();
+        // 拼接出目标路径,与加密文件同目录
+        String afterPath = PathUtils.leftJoin(FileUtil.getParent(cryptoContext.getBeforePath(), 1), afterName);
+        // 计算对应的场景锁
+        String lockKey = StrUtil.format("{}:{}", CacheConstants.PREFIX_LOCK_AFTER_NAME_GENERATE, getIdByPath(afterPath));
+        // 加锁执行操作
+        RLock lock = redissonClient.getLock(lockKey);
+        if (lock.tryLock(15, 30, TimeUnit.SECONDS)) {
+            TimeInterval timer = DateUtil.timer();
+            // 在锁释放之前需要完成业务操作
+            boolean flag = false;
+            while (NumberUtil.compare(timer.intervalMs(), 10000) <= 0) {
+                // 如果物理文件已存在,直接不符合条件
+                if (!FileUtil.exist(FileUtil.file(afterPath))) {
+                    // 注意需要使用新的路径生成ID
+                    Blossom cacheMapValue = redisMasterCache.getCacheMapValue(CacheConstants.BLOSSOM_MAP, getIdByPath(afterPath));
+                    if (cacheMapValue == null) {
+                        flag = true;// 物理条件不存在且缓存中也没注册,符合条件
+                    } else {
+                        if (StatusEnum.get(cacheMapValue.getStatus()).equals(StatusEnum.ABSENT)) {
+                            flag = true;// 物理条件不存在且缓存中已经注册,但是状态是ABSENT,符合条件
+                        }
+                    }
+                }
+                if (flag) {
+                    break;
+                } else {
+                    // 重名标记
+                    String duplicateNameMarker = StrUtil.format(ComConstants.DUPLICATE_NAME_MARKER_TEMPLATE, NanoIdUtils.randomUppercaseNanoId(5));
+                    // 在源文件名基础上加上随机字符串进行区分
+                    afterName = StrUtil.format("{}{}{}{}"
+                            , FileUtil.mainName(nameVo.getSourceName())
+                            , duplicateNameMarker
+                            , StrUtil.isNotBlank(FileUtil.extName(nameVo.getSourceName())) ? "." : ""
+                            , FileUtil.extName(nameVo.getSourceName())
+                    );
+                    // WIN系统限制文件名长度
+                    Assert.isTrue(afterName.length() < 255, "解密后的文件名长度超过255,本次解密任务终止,请手动改名,稍后重试");
+                    // 重新拼接出目标路径
+                    afterPath = PathUtils.leftJoin(FileUtil.getParent(cryptoContext.getBeforePath(), 1), afterName);
+                    // 进入下一个循环前延时
+                    ThreadUtil.sleep(250L);
+                }
+            }
+            if (!flag) {
+                throw new CryptoBusinessException(StrUtil.format("超时无法生成解密后文件,请稍后重试"));
+            }
+            // 名称/路径合法可用,登记入缓存
+            Blossom afterBlossom = blossomCacheService.lockToGetOrDefault(afterPath);
+            return afterBlossom;
+        } else {
+            throw new CryptoBusinessException(StrUtil.format("超时无法生成解密后文件合法命名,请稍后重试"));
         }
     }
 

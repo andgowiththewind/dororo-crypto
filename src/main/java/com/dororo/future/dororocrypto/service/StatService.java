@@ -24,6 +24,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.concurrent.CompletableFuture;
+import java.util.function.Function;
 import java.util.stream.Collectors;
 
 /**
@@ -41,28 +42,34 @@ public class StatService {
     @Qualifier(ThreadPoolConstants.STAT)
     private ThreadPoolTaskExecutor statTaskExecutor;
 
-    public void onMessage(String sessionId, String message) {
-        log.debug("[CRYPTO WEBSOCKET]-收到消息:[ID={}],[消息={}]", sessionId, message);
 
+    /**
+     * 处理从前端webSocket传递过来的消息
+     *
+     * @param sessionId 页面唯一标识
+     * @param message   消息内容字符串
+     */
+    public void onMessage(String sessionId, String message) {
+        // log.debug("[CRYPTO WEBSOCKET]-收到消息:[ID={}],[消息={}]", sessionId, message);
         CryptoWebSocketMessage convert = null;
         try {
             convert = Convert.convert(CryptoWebSocketMessage.class, JSONUtil.parseObj(message));
         } catch (ConvertException e) {
             // ignore
         }
-
+        // 约定消息格式中必须指定消息类型`type`
         if (convert == null || StrUtil.isBlank(convert.getType())) {
-            log.warn("[CRYPTO WEBSOCKET]-消息格式错误:[ID={}],[消息={}]", sessionId, message);
+            // log.warn("[CRYPTO WEBSOCKET]-消息格式错误:[ID={}],[消息={}]", sessionId, message);
             return;
         }
+
         // 使用专门的线程池处理消息处理并推送
         CryptoWebSocketMessage finalConvert = convert;
-        CompletableFuture.runAsync(() -> {
-            // 如果是请求表格数据
-            if (StrUtil.equalsIgnoreCase(finalConvert.getType(), CryptoWebSocketMessage.TypeEnum.TABLE_DATA_UPDATE.getName())) {
-                tableDataUpdate(sessionId, finalConvert);
-            }
-        }, statTaskExecutor).exceptionally((e) -> {
+        CompletableFuture.runAsync(getDispatchRunnable(sessionId, finalConvert), statTaskExecutor).exceptionally(getThrowableVoidFunction());
+    }
+
+    private static Function<Throwable, Void> getThrowableVoidFunction() {
+        return (e) -> {
             // 异常处理:设计上只关注未知异常,已知异常需要在consumer中自行处理
             if (e != null) {
                 String msg = "[LEVEL=STAT]统计线程池未知异常";
@@ -70,36 +77,46 @@ public class StatService {
             }
             // ignore
             return null;
-        });
+        };
+    }
+
+    private Runnable getDispatchRunnable(String sessionId, CryptoWebSocketMessage message) {
+        return () -> {
+            // 如果是请求表格数据
+            if (StrUtil.equalsIgnoreCase(message.getType(), CryptoWebSocketMessage.TypeEnum.TABLE_DATA_UPDATE.getName())) {
+                tableDataUpdate(sessionId, message);
+            }
+            // TODO 如果是统计数据...
+        };
     }
 
     private void tableDataUpdate(String sessionId, CryptoWebSocketMessage reqVo) {
-        // 约定为预览表格的idList
+        // 1.1 当前类型的业务中,约定data为预览表格的idList
         List<String> idList = (List<String>) reqVo.getData();
-        // 找出缓存中的数据
+
+        // 1.2 找出缓存中的对应数据
         List<Blossom> insightTableData = idList.stream().map(id -> {
             Blossom cacheMapValue = redisSlaveCache.getCacheMapValue(CacheConstants.BLOSSOM_MAP, id);
             return cacheMapValue;
         }).filter(Objects::nonNull).collect(Collectors.toList());
 
-
-        // 进度表格的数据
+        // 2.1 进度表格的数据,前端无需提供ID集合,直接从缓存中找出状态为`输出中`或者`即将完成`的数据
         List<Blossom> processTableData = new ArrayList<>();
         Map<String, Blossom> blossomMap = redisSlaveCache.getCacheMap(CacheConstants.BLOSSOM_MAP);
         for (Map.Entry<String, Blossom> entry : blossomMap.entrySet()) {
             Blossom value = entry.getValue();
             if (value != null && value.getStatus() != null) {
-                // 按照状态筛选
                 if (ListUtil.toList(StatusEnum.OUTPUTTING.getCode(), StatusEnum.ALMOST.getCode()).contains(value.getStatus())) {
                     processTableData.add(value);
                 }
             }
         }
 
-        JSONObject dataPart = JSONUtil.createObj().putOpt("insightTableData", insightTableData).putOpt("processTableData", processTableData);
+        // response中,使用data记录两个表格的数据,并使用约定字段、约定类型
+        JSONObject resData = JSONUtil.createObj().putOpt("insightTableData", insightTableData).putOpt("processTableData", processTableData);
         CryptoWebSocketMessage resVo = CryptoWebSocketMessage.builder()
                 .type(CryptoWebSocketMessage.TypeEnum.TABLE_DATA_UPDATE.getName())
-                .data(dataPart)
+                .data(resData)
                 .build();
         String msg = JSONUtil.toJsonStr(resVo);
 

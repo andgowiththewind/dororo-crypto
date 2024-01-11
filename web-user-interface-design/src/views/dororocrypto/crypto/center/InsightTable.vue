@@ -100,8 +100,9 @@ export default {
       folderPathCopy: process.env.VUE_APP_DEV_FOLDER_PATH || '',
       userPassword: process.env.VUE_APP_TEST_KEY || '',
       bufferSize: 1024,
-      // WS实例
+      // WS实例ID
       cryptoWebSocketId: null,
+      // WS实例对象
       cryptoWebSocketVo: null,
       // 用于跟踪WebSocket连接状态的Promise,防止重复构建
       cryptoWebSocketPromise: null,
@@ -142,7 +143,7 @@ export default {
     updateInsightTableDataBinding() {
       this.$bus.$on(methodConsts.INSIGHT_TABLE_DATA_UPDATE, (data) => {
         this.insightTableVo.tableData = data;
-        devConsoleLog('INSIGHT_TABLE_DATA_UPDATE', data);
+        // devConsoleLog('INSIGHT_TABLE_DATA_UPDATE', data);
       });
     },
     sysParamsInit() {
@@ -184,20 +185,18 @@ export default {
         this.sysParams.bufferSizeOptions.push({label: item * 1024, value: item * 1024});
       });
     },
-    // 构建WS
+    // 构建WS,如果已存在且已连接,则无需重复构建
     buildCryptoWebSocket() {
       if (this.cryptoWebSocketVo != null && this.cryptoWebSocketVo != undefined && this.cryptoWebSocketVo.readyState === WebSocket.OPEN) {
-        // "WS已存在且已连接"无需重复构建
-        devConsoleLog("WS已存在且已连接：" + this.cryptoWebSocketId);
+        // devConsoleLog(`无需重复构建webSocket,当前-[${this.cryptoWebSocketId}]`);
         return true;
       }
       if (!this.sysParams.websocketUriPrefix) {
-        console.error("WS前缀未配置");
+        console.error("无法构建webSocket,缺少服务器地址");
         return false;
       }
       if (this.cryptoWebSocketPromise) {
-        // 说明有其他线程正在构建WS
-        devConsoleLog("有其他线程正在构建WS...")
+        devConsoleLog("有其他线程webSocket")
         return false;
       } else {
         // 说明没有其他线程正在构建WS
@@ -206,96 +205,94 @@ export default {
         // 构建Promise
         this.cryptoWebSocketPromise = new Promise((resolve, reject) => {
           try {
-            devConsoleLog("WS Building...");
+            devConsoleLog("正在新建webSocket...");
+            // 此时是异步的
             this.cryptoWebSocketVo = new WebSocket(url);
 
             // 连接建立成功
             this.cryptoWebSocketVo.onopen = () => {
-              devConsoleLog(`[${sessionId}]-WS Connected`);
+              devConsoleLog(`[${sessionId}]-webSocket Connected`);
               this.cryptoWebSocketId = sessionId;
               resolve(this.cryptoWebSocketVo);
             };
 
             // 连接建立失败
             this.cryptoWebSocketVo.onerror = (error) => {
-              devConsoleLog(`[${sessionId}]-WS Connect Failed`);
+              devConsoleLog(`[${sessionId}]-webSocket Connect Failed`);
               reject(error);
             };
 
             // 接收到消息
             this.cryptoWebSocketVo.onmessage = (event) => {
-              devConsoleLog(`[${sessionId}]-WS Received`, event.data);
+              // devConsoleLog(`[${sessionId}]-webSocket Received:`, event.data);
+              // 处理消息分发到具体业务具体操作
               this.cryptoWebSocketMessageDispatch(event.data);
             };
 
             // 连接关闭
             this.cryptoWebSocketVo.onclose = () => {
-              devConsoleLog(`[${sessionId}]-WS Closed`);
+              devConsoleLog(`[${sessionId}]-webSocket Closed`);
               this.cryptoWebSocketPromise = null; // 重置Promise
               this.cryptoWebSocketId = null; // 重置ID
             };
           } catch (e) {
-            devConsoleLog("WS Build Failed", e);
+            devConsoleLog("webSocket Build Failed", e);
             reject(e);
           }
         });
 
         // 处理Promise完成和异常
         this.cryptoWebSocketPromise.then(ws => {
-          devConsoleLog("WS Promise Resolved");
+          // devConsoleLog("webSocket Promise Resolved");
         }).catch(error => {
-          devConsoleLog("WS Promise Rejected", error);
+          devConsoleLog("webSocket Promise Rejected", error);
           this.cryptoWebSocketPromise = null; // 重置Promise
         });
       }
     },
-    test001() {
-      this.$bus.$on(methodConsts.TEST_TEST_TEST, (data) => {
-        devConsoleLog('TEST_TEST_TEST', data);
-        this.buildCryptoWebSocket();
-      });
-    },
+    // 处理WS接收到的消息
     cryptoWebSocketMessageDispatch(messageStr) {
+      // 1.0 字符串尝试转JSON
       let res = {};
       try {
         res = JSON.parse(messageStr);
       } catch (e) {
-        devConsoleLog("WS接收接收字符串转换为对象失败", e);
+        devConsoleLog("`webSocket`接收字符串尝试转JSON发生错误", e);
         return false;
       }
-      devConsoleLog("转换WS接收到的后台消息字符串为对象", res);
+      // devConsoleLog("WS接收字符串转JSON成功", res);
+      // 2.0 判断JSON中是否包含约定的状态码`200`
       if (!(res && res.code && res.code === 200)) {
-        // 约定成功码为200
-        devConsoleLog("WS接收接收字符串转换为对象失败,状态码不正确", res);
+        // devConsoleLog("webSocket接收到的对象状态码!=200", res);
         return false;
       }
-      // 如果是`tableDataUpdate`类型
+      // 3.1 [具体业务具体分发]-如果是`tableDataUpdate`类型
       if (res && res.type && res.type === 'tableDataUpdate') {
         this.wsTableDataUpdate(res.data);
       }
     },
-    // 更新tableData中的数据
+    // 更新两个tableData中的数据
     wsTableDataUpdate(tableData) {
-      // 更新`insightTableData`
+      // (1)预览表格
+      // 约定字段`insightTableData`,更新`insightTableVo.tableData`
       let insightTableData = tableData.insightTableData;
-
-      let source = this.insightTableVo.tableData;
-      // source中行如果在结果集能找到对应,则更新
-      source.map(sourceItem => {
+      // 当前表格中展示的数据
+      let currentData = this.insightTableVo.tableData;
+      currentData.map(sourceItem => {
+        // 当前表格中展示的数据行,如果在本次后端传过来的结果集能找到对应,则更新
         insightTableData.map(insightTableDataItem => {
           if (sourceItem.id === insightTableDataItem.id) {
             Object.assign(sourceItem, insightTableDataItem);
           }
         });
       });
-
-      // 将进度表格的数据提交更新
+      // (2)进度表格,约定字段`processTableData`,更新`processTableVo.tableData`
       let processTableData = tableData.processTableData;
       this.$bus.$emit(methodConsts.PROCESS_TABLE_DATA_UPDATE, processTableData);
     },
     // 启动定时任务
-    scheduleStartUp() {
-      // 每隔N秒请求tableData
+    scheduleStartUp(intervalMs) {
+      // 每隔N毫秒请求一次tableData
       setInterval(() => {
         if (this.buildCryptoWebSocket()) {
           // 收集tableData的id
@@ -305,7 +302,7 @@ export default {
           });
           this.cryptoWebSocketVo.send(JSON.stringify({type: 'tableDataUpdate', data: tableDataIdList}));
         }
-      }, 1500);
+      }, intervalMs);
     },
   },
   watch: {},
@@ -314,8 +311,7 @@ export default {
     this.folderPathUpdateBinding();
     this.sysParamsInit();
     this.bufferSizeOptionsInit();
-    this.test001();
-    this.scheduleStartUp();
+    this.scheduleStartUp(2000);
   },
 }
 </script>

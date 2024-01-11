@@ -1,6 +1,5 @@
 package com.dororo.future.dororocrypto.constant;
 
-import java.util.Map;
 
 /**
  * 缓存常量
@@ -10,7 +9,7 @@ import java.util.Map;
  */
 public class CacheConstants {
     /**
-     * 物理文件在REDIS中对应映射
+     * 物理文件在REDIS中对应映射,KEY=绝对路径固定摘要算法密文,VALUE=实体类映射对象
      */
     public static final String BLOSSOM_MAP = "blossomMap";
 
@@ -38,4 +37,6 @@ public class CacheConstants {
     public static final String PREFIX_LOCK_BLOSSOM = "lockBlossom";
     // 提交加解密请求时后端实现防抖,锁前缀
     public static final String MISSION_ANTI_SHAKE = "missionAntiShake";
+    // 特定场景:解密时为了避免多个加密文件解密后是同一个文件名,需要加锁避免交叉
+    public static final String PREFIX_LOCK_AFTER_NAME_GENERATE = "lockAfterNameGenerate";
 }

@@ -23,4 +23,8 @@ public class ComConstants {
      * 默认缓冲区大小
      */
     public static final Integer DEFAULT_BUFFER_SIZE = 1024;
+    /**
+     * 重名文件标记模板,
+     */
+    public static final String DUPLICATE_NAME_MARKER_TEMPLATE = "$#重名标记{}#$";
 }
