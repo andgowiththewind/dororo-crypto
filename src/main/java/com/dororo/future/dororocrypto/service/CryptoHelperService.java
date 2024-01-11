@@ -227,7 +227,6 @@ public class CryptoHelperService extends BaseService {
         // 定义正则表达式
         String pattern = "\\$#重名标记[a-zA-Z0-9]{5}#\\$";
         String cleaned = ReUtil.delFirst(pattern, fileName);
-
         return cleaned;
     }
 
