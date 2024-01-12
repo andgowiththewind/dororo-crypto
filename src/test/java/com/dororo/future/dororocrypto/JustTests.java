@@ -12,12 +12,12 @@ import com.dororo.future.dororocrypto.util.PathUtils;
 import com.dororo.future.dororocrypto.vo.req.CryptoReqVo;
 import org.junit.jupiter.api.Test;
 
+import java.io.File;
+
 public class JustTests {
 
 
     @Test
     public void test01() {
-        System.out.println(FileUtil.mainName(".asdsadasd"));
-        System.out.println(FileUtil.extName(".asdsadasd"));
     }
 }

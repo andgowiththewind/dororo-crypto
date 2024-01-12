@@ -10,7 +10,7 @@ import java.util.StringJoiner;
  *
  * @author Dororo
  * @version 5.0.0
- * @date 2024-01-06 21:52 基于Hutool二开,结合ChatGPT
+ * @date 2024-01-06 21:52 基于Hutool二开,结合ChatGPT,另外,Hutool的`cn.hutool.core.io.FileUtil#file(java.lang.String...)`方法能实现路径拼接
  */
 public class PathUtils {
 
