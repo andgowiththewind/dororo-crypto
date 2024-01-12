@@ -5,6 +5,7 @@ import ElementUI from 'element-ui';
 import 'element-ui/lib/theme-chalk/index.css';
 //
 import 'font-awesome/css/font-awesome.css';
+import './assets/animista/animista.css';
 //
 import moment from "moment";
 // 使用拖拽指令

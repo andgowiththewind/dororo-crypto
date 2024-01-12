@@ -1,6 +1,6 @@
 <template>
   <div>
-    <el-container class="top-container-clazz">
+    <el-container v-cloak class="top-container-clazz">
       <el-aside v-drag style="width: 250px;">
         <AsideMenu/>
       </el-aside>
@@ -42,6 +42,10 @@ export default {
 </script>
 
 <style scoped>
+[v-cloak] {
+  display: none;
+}
+
 /* ===============================================[测试阶段颜色区分][start]======================================================== */
 .el-header, .el-footer {
   background-color: #B3C0D1;
@@ -68,6 +72,8 @@ export default {
   top: 0;
   right: 0;
   bottom: 0;
-  margin: 5px;
+  margin: 0px;
 }
+
+
 </style>

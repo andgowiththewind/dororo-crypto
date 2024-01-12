@@ -5,8 +5,8 @@ dororo-thread-pool:
     keep-alive-seconds: 60
     queue-capacity: 5000
   crypto:
-    core-pool-size: 8
-    max-pool-size: 10
+    core-pool-size: 15
+    max-pool-size: 20
     keep-alive-seconds: 60
     queue-capacity: 20000
   stat:

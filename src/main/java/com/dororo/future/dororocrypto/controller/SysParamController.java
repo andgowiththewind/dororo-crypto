@@ -32,4 +32,10 @@ public class SysParamController {
         // TODO 主要业务逻辑在过滤器
         return BaseMvcResponse.success("密码格式检查通过!");
     }
+
+    @GetMapping("/checkHeartBeat")
+    public BaseMvcResponse checkHeartBeat() {
+        return BaseMvcResponse.success("服务器心跳正常");
+    }
+
 }
