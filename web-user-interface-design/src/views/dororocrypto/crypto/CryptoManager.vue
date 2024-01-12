@@ -5,13 +5,28 @@
         <AsideMenu/>
       </el-aside>
       <el-container>
-        <el-header>Header</el-header>
+        <el-header style="height: 50px;">
+          <!--Header-->
+        </el-header>
         <el-main style="padding: 5px !important;">
           <CenterContent/>
         </el-main>
-        <el-footer>Footer</el-footer>
+        <el-footer style="height: 50px;">
+          <!--Footer-->
+        </el-footer>
       </el-container>
     </el-container>
+
+    <div class="author-info-zone">
+      <p>
+        <span style="color:#4aa3fb;">© 2024 </span>
+        <span style="color:#fc0000;">dororo. </span>
+        <span style="color:#EB547D;">All </span>
+        <span style="color:#9F6AA7;">rights </span>
+        <span style="color:#5476B3;">reserved. </span>
+      </p>
+    </div>
+
   </div>
 </template>
 
@@ -76,4 +91,10 @@ export default {
 }
 
 
+.author-info-zone {
+  font-family: 'Rubik Mono One', sans-serif;
+  position: fixed;
+  right: 10px;
+  bottom: -3px;
+}
 </style>

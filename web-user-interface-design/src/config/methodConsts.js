@@ -9,6 +9,8 @@ export const LOADING_JUMP_CRYPTO = 'loadingJumpCrypto';
 export const LOADING_BINGO_NUM_CHANGE = 'loadingBingoNumChange';
 
 
+export const WATCH_SERVE_HEART_BEAT = 'watchServeHeartBeat';
+
 
 
 

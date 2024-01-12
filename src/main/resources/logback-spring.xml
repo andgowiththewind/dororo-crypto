@@ -14,6 +14,8 @@
 <configuration scan="true" scanPeriod="60 seconds" debug="false">
     <!--通过环境变量`LOGBACK_ROOT_LOGGING_LEVEL`,控制开发阶段使用DEBUG打印信息-->
     <property name="MY_LOG_LEVEL" value="${LOGBACK_ROOT_LOGGING_LEVEL:-INFO}"/>
+    <property name="MY_LOG_CHARSET" value="${LOGBACK_LOG_CHARSET:-gbk}"/>
+
     <property name="LOG_HOME" value="./zephyrlogs/"/>
     <property name="LOG_PATTERN" value="[%d{yyyy-MM-dd HH:mm:ss.SSS}][%thread][%-5level][%logger{50} # %method][%line] %msg%n"/>
     <property name="LOG_MAX_HISTORY" value="60"/>
@@ -22,8 +24,7 @@
         <!--[属性/配置说明][encoder]:两个作用(1)将日志信息转换(格式化)为字符串;(2)然后写入到文件中;-->
         <encoder>
             <pattern>${LOG_PATTERN}</pattern>
-            <charset>UTF-8</charset>
-            <!--<charset>gbk</charset>-->
+            <charset>${MY_LOG_CHARSET}</charset>
         </encoder>
     </appender>
 
@@ -35,7 +36,7 @@
         </rollingPolicy>
         <encoder>
             <pattern>${LOG_PATTERN}</pattern>
-            <charset>UTF-8</charset>
+            <charset>${MY_LOG_CHARSET}</charset>
             <!--<charset>gbk</charset>-->
         </encoder>
         <filter class="ch.qos.logback.classic.filter.LevelFilter">
@@ -56,7 +57,7 @@
         </rollingPolicy>
         <encoder>
             <pattern>${LOG_PATTERN}</pattern>
-            <charset>UTF-8</charset>
+            <charset>${MY_LOG_CHARSET}</charset>
             <!--<charset>gbk</charset>-->
         </encoder>
         <filter class="ch.qos.logback.classic.filter.LevelFilter">
@@ -74,7 +75,7 @@
         </rollingPolicy>
         <encoder>
             <pattern>${LOG_PATTERN}</pattern>
-            <charset>UTF-8</charset>
+            <charset>${MY_LOG_CHARSET}</charset>
             <!--<charset>gbk</charset>-->
         </encoder>
         <filter class="ch.qos.logback.classic.filter.LevelFilter">
@@ -94,7 +95,7 @@
         </rollingPolicy>
         <encoder>
             <pattern>${LOG_PATTERN}</pattern>
-            <charset>UTF-8</charset>
+            <charset>${MY_LOG_CHARSET}</charset>
             <!--<charset>gbk</charset>-->
         </encoder>
     </appender>

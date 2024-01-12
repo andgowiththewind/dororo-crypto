@@ -26,7 +26,7 @@
             :row-style="rowStyleFn"
             :cell-style="cellStyleFn"
             :header-cell-style="headerCellStyleFn"
-            :max-height="900"
+            :max-height="350"
             :data="processTableData"
             style="width: 100%;min-height:200px;">
           <el-table-column label="文件名" width="200" prop="name" :show-overflow-tooltip="true"></el-table-column>

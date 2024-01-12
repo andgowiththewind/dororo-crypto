@@ -1,7 +1,7 @@
 <template>
   <div>
     <!--part01：点击按钮展示弹出层-->
-    <el-button type="warning" size="mini" style="width: 100%;height: 60px;" @click="dialogVo.show=true">
+    <el-button type="warning" size="mini" style="width: 100%;height: 50px;" @click="dialogVo.show=true">
       <i class="fa fa-hand-pointer-o">&nbsp;输入路径获取目录树</i>
     </el-button>
 

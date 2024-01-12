@@ -1,6 +1,9 @@
 <template>
   <div>
     <div class="loading-group" ref="loadingGroup">
+      <div v-if="bingoNum===0">
+        <Loading000/>
+      </div>
       <div v-if="bingoNum===1">
         <Loading001/>
       </div>
@@ -37,9 +40,22 @@
       <div v-if="bingoNum===12">
         <Loading012/>
       </div>
-
-
     </div>
+
+    <div class="heart-beat-info-zone">
+      <p>
+        <span style="color:#FBDB4A;">服</span>
+        <span style="color:#EB547D;">务</span>
+        <span style="color:#F3934A;">器</span>
+        <span style="color:#9F6AA7;" v-show="!serveHeartBeat">未</span>
+        <span style="color:#9F6AA7;" v-show="serveHeartBeat">已</span>
+        <span style="color:#5476B3;">启</span>
+        <span style="color:#FBDB4A;">动</span>
+        <span style="color:#EB547D;" v-show="!serveHeartBeat">!!</span>
+        <span style="color:#EB547D;" v-show="serveHeartBeat">~~</span>
+      </p>
+    </div>
+
   </div>
 </template>
 
@@ -47,7 +63,7 @@
 import {Notification, MessageBox, Message, Loading} from 'element-ui';
 import * as methodConsts from '@/config/methodConsts';
 
-
+import Loading000 from "@/views/dororocrypto/welcome/Loading000.vue";
 import Loading001 from '@/views/dororocrypto/welcome/Loading001.vue';
 import Loading002 from "@/views/dororocrypto/welcome/Loading002.vue";
 import Loading003 from "@/views/dororocrypto/welcome/Loading003.vue";
@@ -65,6 +81,7 @@ import Loading012 from "@/views/dororocrypto/welcome/Loading012.vue";
 export default {
   name: "MillionLoading",
   components: {
+    Loading000,
     Loading001,
     Loading002,
     Loading003,
@@ -81,6 +98,7 @@ export default {
   data() {
     return {
       bingoNum: null,
+      serveHeartBeat: false,
     }
   },
   methods: {
@@ -102,9 +120,7 @@ export default {
       if (this.$refs.loadingGroup && this.$refs.loadingGroup.contains(event.target)) {
         // 执行操作
         console.log('Clicked inside the div');
-
         this.$bus.$emit(methodConsts.LOADING_JUMP_CRYPTO, null);
-
       } else {
         // 显示提示信息
         // console.log('Clicked outside the div');
@@ -120,6 +136,15 @@ export default {
     this.$bus.$on(methodConsts.LOADING_BINGO_NUM_CHANGE, (data) => {
       this.handleBingoNum();
     });
+
+    this.$bus.$on(methodConsts.WATCH_SERVE_HEART_BEAT, (boolData) => {
+      this.serveHeartBeat = boolData;
+      if (boolData === true) {
+        // this.bingoNum = 0;
+      }
+    });
+
+
   },
   beforeDestroy() {
     // 全局监听点击事件
@@ -129,5 +154,12 @@ export default {
 </script>
 
 <style scoped>
-
+.heart-beat-info-zone {
+  position: fixed;
+  bottom: 0px;
+  right: 50px;
+  text-align: center;
+  font-family: 'Rubik Mono One', sans-serif;
+  font-size: 50px;
+}
 </style>

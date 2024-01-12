@@ -48,8 +48,10 @@ export default {
         p.then((response) => {
           if (response.status === 200) {
             this.heartBeatAlive = true;
+            this.$bus.$emit(methodConsts.WATCH_SERVE_HEART_BEAT, true);
           } else {
             this.heartBeatAlive = false;
+            this.$bus.$emit(methodConsts.WATCH_SERVE_HEART_BEAT, false);
           }
         }).catch((error) => {
           this.heartBeatAlive = false;
@@ -69,18 +71,11 @@ export default {
 
 
     this.$bus.$on(methodConsts.LOADING_JUMP_CRYPTO, (data) => {
-
       if (this.heartBeatAlive) {
         this.millionLoadingShow = false;
         this.cryptoManagerShow = true;
       } else {
-        Notification({
-          title: '提示',
-          message: '服务端未启动，请先启动服务端',
-          type: 'warning',
-          duration: 2000,
-          position: 'bottom-right',
-        });
+        // Notification({title: '提示', message: '服务端未启动，请先启动服务端', type: 'warning', duration: 2000, position: 'bottom-right',});
         this.$bus.$emit(methodConsts.LOADING_BINGO_NUM_CHANGE, null);
       }
 
