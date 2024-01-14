@@ -43,6 +43,7 @@ Source: "C:\dororovm\dev\projects\gitee\2414\dororo-crypto\.environments\.deploy
 
 Source: "C:\dororovm\dev\projects\gitee\2414\dororo-crypto\.environments\.deploy\config\*"; DestDir: "{app}\config"; Flags: ignoreversion recursesubdirs createallsubdirs
 
+Source: "C:\dororovm\dev\projects\gitee\2414\dororo-crypto\.environments\.deploy\打开两个REDIS.bat"; DestDir: "{app}"; Flags: ignoreversion
 Source: "C:\dororovm\dev\projects\gitee\2414\dororo-crypto\.environments\.deploy\redis01\*"; DestDir: "{app}\redis01"; Flags: ignoreversion recursesubdirs createallsubdirs
 Source: "C:\dororovm\dev\projects\gitee\2414\dororo-crypto\.environments\.deploy\redis02\*"; DestDir: "{app}\redis02"; Flags: ignoreversion recursesubdirs createallsubdirs
 
