@@ -23,7 +23,7 @@ public class AesUtils {
             // 1.0 秘钥派生函数,将用户输入的任意长度的密码转换为固定长度的秘钥
             byte[] salt = explicitSaltString.getBytes();
             SecretKeyFactory factory = SecretKeyFactory.getInstance("PBKDF2WithHmacSHA256");
-            PBEKeySpec spec = new PBEKeySpec(userPassword.toCharArray(), salt, 65536, 128);// 65536是迭代次数,128是期望生成的密钥长度
+            PBEKeySpec spec = new PBEKeySpec(userPassword.toCharArray(), salt, 65536, 256);// 65536是迭代次数,256是期望生成的密钥长度
             SecretKey secretKey = factory.generateSecret(spec);
             // 2.0 生成AES加密算法
             byte[] secretKeyBytes = secretKey.getEncoded();
