@@ -1,2 +1,3 @@
 # dororo-crypto
-exe 
+
+dororoCryptoSetup1.0.0 upload;
