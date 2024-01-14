@@ -7,3 +7,4 @@ spring:
       - thread-pool
   main:
     allow-circular-references: true
+    banner-mode: off

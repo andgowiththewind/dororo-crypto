@@ -17,9 +17,9 @@ import java.util.ArrayList;
  * @author Dororo
  * @date 2024-01-08 12:18
  */
-@Component
+// @Component
 public class DevRunner implements ApplicationRunner {
-    @Value("${DEV_ING}")
+    @Value("${DEV_ING:false}")
     private Boolean devIng;
 
     @Override

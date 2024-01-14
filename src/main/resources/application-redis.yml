@@ -2,7 +2,7 @@ dororo-dynamic-redis:
   properties-map:
     master:
       host: ${REDIS_MASTER_HOST:127.0.0.1}
-      port: ${REDIS_MASTER_PORT:6391}
+      port: ${REDIS_MASTER_PORT:6389}
       database: ${REDIS_MASTER_DATABASE:0}
       password: ${REDIS_MASTER_PASSWORD:dororosheep.cn}
       timeout: 10000 # 连接超时时间,查看源码此值填毫秒值且不带单位
@@ -14,7 +14,7 @@ dororo-dynamic-redis:
           max-wait: -1 # 连接池最大阻塞等待时间(使用负值表示没有限制)(-1ms改为-1不带单位)
     slave: # 多Redis数据源,且主从复制,从节点
       host: ${REDIS_SLAVE_HOST:127.0.0.1}
-      port: ${REDIS_SLAVE_PORT:6392}
+      port: ${REDIS_SLAVE_PORT:6390}
       database: ${REDIS_SLAVE_DATABASE:0}
       password: # 从库无需密码
       timeout: 10000 # 连接超时时间,查看源码此值填毫秒值且不带单位

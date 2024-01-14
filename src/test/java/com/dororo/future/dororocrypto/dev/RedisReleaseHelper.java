@@ -1,9 +1,9 @@
-package com.dororo.future.dororocrypto;
+package com.dororo.future.dororocrypto.dev;
 
 import cn.hutool.core.bean.BeanUtil;
+import cn.hutool.core.collection.CollectionUtil;
 import cn.hutool.core.collection.ListUtil;
 import cn.hutool.core.io.FileUtil;
-import cn.hutool.core.lang.Assert;
 import cn.hutool.core.lang.Console;
 import cn.hutool.core.util.StrUtil;
 import cn.hutool.json.JSONObject;
@@ -13,53 +13,33 @@ import com.dororo.future.dororocrypto.util.FileUtils;
 import com.dororo.future.dororocrypto.util.PathUtils;
 import freemarker.template.Configuration;
 import freemarker.template.Template;
-import lombok.Builder;
-import lombok.Data;
-import lombok.SneakyThrows;
+import lombok.*;
+import lombok.experimental.Accessors;
 import net.lingala.zip4j.ZipFile;
-import org.junit.jupiter.api.Test;
 
 import java.io.File;
 import java.io.FileWriter;
-import java.util.ArrayList;
 import java.util.List;
 
 /**
- * 部署开发环境
+ * 部署REDIS免安装版本X2
  *
  * @author Dororo
- * @date 2024-01-06 21:41
+ * @date 2024-01-13 13:56 开发环境和生产环境
  */
-public class DevDeployTests {
-    public static final String projectPath = SystemUtil.getUserInfo().getCurrentDir();
-    public static final String envPath = PathUtils.rightJoin(projectPath, ".environments/.dev");
-    public static final String redisPackagePath = PathUtils.rightJoin(projectPath, ".attachments/.backups/redis_x64_3.0.504.zip");
-
-    @Test
-    public void devDeploy() {
-        // 清理历史文件
-        cleanUpHistoricalFiles();
-        // 解压缩REDIS免安装版压缩包
-        redisRelease();
-        // 渲染一个能同时启动2个REDIS实例的脚本
-        renderUp2RedisScript();
-    }
-
-    private void cleanUpHistoricalFiles() {
-        FileUtil.loopFiles(envPath).forEach(file -> {
-            if (FileUtil.isFile(file) && !StrUtil.equalsIgnoreCase(FileUtil.getName(file), ".gitkeep")) {
-                FileUtil.del(file);
-            }
-        });
-    }
+public class RedisReleaseHelper {
+    public static final String PROJECT_PATH = SystemUtil.getUserInfo().getCurrentDir();
 
     @SneakyThrows
-    private void redisRelease() {
-        Assert.isTrue(FileUtil.exist(redisPackagePath) && FileUtil.isFile(redisPackagePath), StrUtil.format("REDIS压缩包不存在：[{}]", redisPackagePath));
-        for (EnvParam envParam : getEnvParams()) {
+    public static void release(List<RedisEnvParam> redisEnvParams) {
+        if (CollectionUtil.isEmpty(redisEnvParams)) {
+            return;
+        }
+        File redisZip = FileUtil.file(PROJECT_PATH, ".attachments/.backups/redis_x64_3.0.504.zip");
+        for (RedisEnvParam envParam : redisEnvParams) {
             // 将ZIP分别解压缩到两个目录
-            new ZipFile(redisPackagePath).extractAll(envParam.getOutputPath());
-            Console.log("[{}]解压缩至:[{}]", FileUtil.mainName(redisPackagePath).toUpperCase(), envParam.getOutputPath());
+            new ZipFile(redisZip).extractAll(envParam.getOutputPath());
+            Console.log("[{}]解压缩至:[{}]", FileUtil.mainName(redisZip).toUpperCase(), envParam.getOutputPath());
             // 渲染BAT脚本
             Configuration cfg = new Configuration(Configuration.VERSION_2_3_32);// 定义模板引擎
             cfg.setDirectoryForTemplateLoading(FileUtil.file(envParam.getTemplateDirPath()));// 定义模板文件位置
@@ -81,21 +61,34 @@ public class DevDeployTests {
                 }
             }
         }
+
+        // 渲染一个能同时启动2个REDIS实例的脚本
+        // TODO 尚未完善-应该改造为相对路径
+        // batUp2Redis(redisEnvParams);
+
+        // 替代方案
+        File file = FileUtil.file(PROJECT_PATH, ".attachments/.templates/.redis/打开两个REDIS.bat");
+        File targetFile = FileUtil.file(
+                FileUtil.getParent(redisEnvParams.get(0).getOutputPath(), 1)
+                , "打开两个REDIS.bat"
+        );
+        FileUtil.copy(file, targetFile, true);
     }
 
     @SneakyThrows
-    private void renderUp2RedisScript() {
+    private static void batUp2Redis(List<RedisEnvParam> redisEnvParams) {
+        String outputPath = FileUtil.getParent(redisEnvParams.get(0).getOutputPath(), 1);
         // 渲染所需参数
         List<JSONObject> list = ListUtil.toList(
-                JSONUtil.createObj().putOpt("name", "master").putOpt("port", "6391").putOpt("batPath", PathUtils.rightJoin(envPath, "redis01", "up.bat"))
-                , JSONUtil.createObj().putOpt("name", "slave").putOpt("port", "6392").putOpt("batPath", PathUtils.rightJoin(envPath, "redis02", "up.bat"))
+                JSONUtil.createObj().putOpt("name", "master").putOpt("port", "6391").putOpt("batPath", PathUtils.rightJoin(outputPath, "redis01", "up.bat"))
+                , JSONUtil.createObj().putOpt("name", "slave").putOpt("port", "6392").putOpt("batPath", PathUtils.rightJoin(outputPath, "redis02", "up.bat"))
         );
         JSONObject dataModel = JSONUtil.createObj().putOpt("list", list);
 
         // 模板位置
-        String templatePath = PathUtils.rightJoin(projectPath, ".attachments/.templates/.redis/up2redis.bat.ftl");
+        String templatePath = PathUtils.rightJoin(PROJECT_PATH, ".attachments/.templates/.redis/up2redis.bat.ftl");
         // 渲染至
-        String targetPath = PathUtils.rightJoin(envPath, "up2redis.bat");
+        String targetPath = PathUtils.rightJoin(outputPath, "up2redis.bat");
         Configuration cfg = new Configuration(Configuration.VERSION_2_3_32);// 定义模板引擎
         cfg.setDirectoryForTemplateLoading(FileUtil.file(FileUtil.getParent(templatePath, 1)));// 定义模板文件位置
         Template template = cfg.getTemplate(FileUtil.getName(templatePath));
@@ -104,36 +97,16 @@ public class DevDeployTests {
         writer.close();
         Console.log("已渲染：[{}]", FileUtil.getName(targetPath));
 
-        FileUtils.openFile(targetPath);
-
+        FileUtils.openDirectory(outputPath);
     }
 
-    private static List<EnvParam> getEnvParams() {
-        String masterPort = "6391";
-        String slavePort = "6392";
-        String masterPassword = "dororosheep.cn";
-        EnvParam envParamMaster = EnvParam.builder()
-                .outputPath(PathUtils.rightJoin(envPath, "redis01"))
-                .templateDirPath(PathUtils.rightJoin(projectPath, ".attachments/.templates/.redis/.master"))
-                .masterPassword(masterPassword)
-                .slavePort(slavePort)
-                .masterPort(masterPort)
-                .build();
-
-        EnvParam envParamSlave = EnvParam.builder()
-                .outputPath(PathUtils.rightJoin(envPath, "redis02"))
-                .templateDirPath(PathUtils.rightJoin(projectPath, ".attachments/.templates/.redis/.slave"))
-                .masterPassword(masterPassword)
-                .slavePort(slavePort)
-                .masterPort(masterPort)
-                .build();
-
-        return ListUtil.of(envParamMaster, envParamSlave);
-    }
 
     @Data
     @Builder
-    public static class EnvParam {
+    @NoArgsConstructor
+    @AllArgsConstructor
+    @Accessors(chain = true)
+    public static class RedisEnvParam {
         // 环境输出目录
         private String outputPath;
         // 模板文件存放目录
@@ -145,5 +118,4 @@ public class DevDeployTests {
         // 主节点密码
         private String masterPassword;
     }
-
 }

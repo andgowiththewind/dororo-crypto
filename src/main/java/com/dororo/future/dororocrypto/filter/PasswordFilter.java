@@ -36,7 +36,7 @@ import java.util.List;
 public class PasswordFilter extends OncePerRequestFilter {
     @Autowired
     private RedisMasterCache redisMasterCache;
-    
+
 
     @Override
     protected boolean shouldNotFilter(HttpServletRequest request) throws ServletException {
@@ -53,30 +53,32 @@ public class PasswordFilter extends OncePerRequestFilter {
      */
     @Override
     protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain filterChain) throws ServletException, IOException {
-        // 设计上前端从请求头中传递密码
-        String userPassword = request.getHeader("userPassword");
-        Assert.notBlank(userPassword, "密码不能为空");
-        // 对密码进行URL解码
-        userPassword = URLUtil.decode(userPassword, "UTF-8");
-        // 计算密码摘要
-        String sha256Hex = DigestUtil.sha256Hex(userPassword);
-        // 查询缓存中是否已经校验过该密码
-        PassCheckVo cacheVo = redisMasterCache.getCacheMapValue(CacheConstants.PASS_CHECK_MAP, sha256Hex);
-        // 如果缓存中存在
-        if (cacheVo != null) {
-            if (cacheVo.getCheck() != null && cacheVo.getCheck()) {
-                // 且历史记录已经曾经校验通过,这直接放行
-                filterChain.doFilter(request, response);
-                return;
-            } else {
-                // 存在历史记录但是记录校验不通过,如果有提示信息,则直接把提示信息返回
-                if (StrUtil.isNotBlank(cacheVo.getErrorMessage())) {
-                    throw new CryptoBusinessException(cacheVo.getErrorMessage());
+        String sha256Hex = null;
+        try {
+            // 设计上前端从请求头中传递密码
+            String userPassword = request.getHeader("userPassword");
+            Assert.notBlank(userPassword, "密码不能为空");
+            // 对密码进行URL解码
+            userPassword = URLUtil.decode(userPassword, "UTF-8");
+            // 计算密码摘要
+            sha256Hex = DigestUtil.sha256Hex(userPassword);
+            // 查询缓存中是否已经校验过该密码
+            PassCheckVo cacheVo = redisMasterCache.getCacheMapValue(CacheConstants.PASS_CHECK_MAP, sha256Hex);
+            // 如果缓存中存在
+            if (cacheVo != null) {
+                if (cacheVo.getCheck() != null && cacheVo.getCheck()) {
+                    // 且历史记录已经曾经校验通过,这直接放行
+                    filterChain.doFilter(request, response);
+                    return;
+                } else {
+                    // 存在历史记录但是记录校验不通过,如果有提示信息,则直接把提示信息返回
+                    if (StrUtil.isNotBlank(cacheVo.getErrorMessage())) {
+                        throw new CryptoBusinessException(cacheVo.getErrorMessage());
+                    }
                 }
             }
-        }
-        // 如果缓存中不存在,说明是首次校验
-        try {
+            // 如果缓存中不存在,说明是首次校验
+
             // 指定条件校验
             userPassValidate(userPassword);
 
@@ -90,8 +92,10 @@ public class PasswordFilter extends OncePerRequestFilter {
             return;
         } catch (IllegalArgumentException e) {
             // 校验失败,同样记录错误信息到缓存中
-            redisMasterCache.setCacheMapValue(CacheConstants.PASS_CHECK_MAP, sha256Hex, PassCheckVo.builder().sha256Key(sha256Hex).check(false).errorMessage(e.getMessage()).build());
-            redisMasterCache.expire(CacheConstants.PASS_CHECK_MAP, 60 * 60 * 24 * 7);
+            if (StrUtil.isNotBlank(sha256Hex)) {
+                redisMasterCache.setCacheMapValue(CacheConstants.PASS_CHECK_MAP, sha256Hex, PassCheckVo.builder().sha256Key(sha256Hex).check(false).errorMessage(e.getMessage()).build());
+                redisMasterCache.expire(CacheConstants.PASS_CHECK_MAP, 60 * 60 * 24 * 7);
+            }
             // 校验失败,直接抛出异常
             throw new CryptoBusinessException(e.getMessage());
         }

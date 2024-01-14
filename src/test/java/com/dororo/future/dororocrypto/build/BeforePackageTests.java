@@ -1,18 +1,15 @@
-package com.dororo.future.dororocrypto;
+package com.dororo.future.dororocrypto.build;
 
 import cn.hutool.core.date.DateUnit;
 import cn.hutool.core.date.DateUtil;
 import cn.hutool.core.io.FileUtil;
 import cn.hutool.core.lang.Assert;
 import cn.hutool.core.lang.Console;
-import cn.hutool.core.util.StrUtil;
 import cn.hutool.system.SystemUtil;
 import com.dororo.future.dororocrypto.util.PathUtils;
 import org.junit.jupiter.api.Test;
 
-import java.io.File;
 import java.util.Date;
-import java.util.List;
 
 /**
  * 使用Maven插件(maven-surefire-plugin)加测试类的方式,确保打JAR包之前,已经将dist目录拷贝到了static目录下

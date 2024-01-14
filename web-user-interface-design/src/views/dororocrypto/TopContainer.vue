@@ -73,6 +73,8 @@ export default {
     this.$bus.$on(methodConsts.LOADING_JUMP_CRYPTO, (data) => {
       if (this.heartBeatAlive) {
         this.millionLoadingShow = false;
+        clearInterval(this.intervalId);
+        console.clear();
         this.cryptoManagerShow = true;
       } else {
         // Notification({title: '提示', message: '服务端未启动，请先启动服务端', type: 'warning', duration: 2000, position: 'bottom-right',});

@@ -14,7 +14,7 @@ import java.io.IOException;
  */
 public class FileUtils {
     public static boolean openDirectory(String directoryPath) {
-        if (StrUtil.isBlank(directoryPath) || !FileUtil.isDirectory(directoryPath)) {
+        if (StrUtil.isBlank(directoryPath)) {
             return false;
         }
         try {
@@ -36,12 +36,16 @@ public class FileUtils {
     }
 
     public static boolean openFile(String filePath) {
-        if (StrUtil.isBlank(filePath) || !FileUtil.isFile(filePath)) {
+        if (StrUtil.isBlank(filePath)) {
             return false;
         }
         try {
             OS osType = getOsType();
             if (osType == OS.WINDOWS) {
+                // WINDOWS系统下如果路径包含空格,则需要用双引号包裹
+                if (filePath.contains(" ")) {
+                    filePath = StrUtil.format("\"{}\"", filePath);
+                }
                 Runtime.getRuntime().exec("cmd /c start " + filePath);
                 return true;
             } else if (osType == OS.UNIX) {
@@ -57,6 +61,10 @@ public class FileUtils {
 
 
         return false;
+    }
+
+    public static boolean openUrl(String url) {
+        return openFile(url);
     }
 
     private static OS getOsType() {

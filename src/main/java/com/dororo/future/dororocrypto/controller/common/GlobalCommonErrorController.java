@@ -1,6 +1,5 @@
 package com.dororo.future.dororocrypto.controller.common;
 
-import cn.hutool.core.lang.Console;
 import org.springframework.boot.web.servlet.error.ErrorController;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
@@ -20,7 +19,6 @@ public class GlobalCommonErrorController implements ErrorController {
     public void handleError(HttpServletRequest request) throws Throwable {
         String key = "javax.servlet.error.exception";
         if (request.getAttribute(key) != null) {
-            Console.log("路过[GlobalCommonErrorController]...");
             // 再抛出以便让自定义的"全局异常处理器"(@RestControllerAdvice)捕获到并处理
             throw (Throwable) request.getAttribute(key);
         }
