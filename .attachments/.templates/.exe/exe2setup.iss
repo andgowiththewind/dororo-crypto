@@ -24,7 +24,7 @@ DisableProgramGroupPage=yes
 InfoAfterFile=C:\dororovm\dev\projects\gitee\2414\dororo-crypto\.environments\.deploy\加解密工具说明.txt
 OutputDir=C:\dororovm\dev\projects\gitee\2414\dororo-crypto\.environments\.deploy
 OutputBaseFilename=dororoCryptoSetup
-SetupIconFile=C:\dororovm\dev\projects\gitee\2414\dororo-crypto\.attachments\.icos\003.ico
+SetupIconFile=C:\dororovm\dev\projects\gitee\2414\dororo-crypto\.attachments\.icos\006.ico
 Compression=lzma
 SolidCompression=yes
 
