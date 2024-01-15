@@ -59,6 +59,6 @@ Name: "{commondesktop}\{#MyAppName}"; Filename: "{app}\{#MyAppExeName}"; Tasks: 
 Filename: "{app}\{#MyAppExeName}"; Description: "{cm:LaunchProgram,{#StringChange(MyAppName, '&', '&&')}}"; Flags: nowait postinstall skipifsilent
 
 [InstallDelete]
-Type: files; Name: "{app}\redis01\*"
-Type: files; Name: "{app}\redis02\*"
+Type: files; Name: "{app}\redis01\appendonly.aof"
+Type: files; Name: "{app}\redis02\dump.rdb"
 
