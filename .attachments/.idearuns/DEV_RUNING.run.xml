@@ -1,0 +1,22 @@
+<component name="ProjectRunConfigurationManager">
+  <configuration default="false" name="DEV_RUNING" type="SpringBootApplicationConfigurationType" factoryName="Spring Boot">
+    <envs>
+      <env name="DEV_ING" value="TRUE" />
+      <env name="LOGBACK_ROOT_LOGGING_LEVEL" value="DEBUG" />
+      <env name="LOGBACK_LOG_CHARSET" value="UTF-8" />
+    </envs>
+    <option name="FRAME_DEACTIVATION_UPDATE_POLICY" value="UpdateClassesAndResources" />
+    <module name="dororo-crypto" />
+    <option name="SPRING_BOOT_MAIN_CLASS" value="com.dororo.future.dororocrypto.DororoCryptoApplication" />
+    <option name="WORKING_DIRECTORY" value="file://$MODULE_DIR$" />
+    <extension name="coverage">
+      <pattern>
+        <option name="PATTERN" value="com.dororo.future.dororocrypto.*" />
+        <option name="ENABLED" value="true" />
+      </pattern>
+    </extension>
+    <method v="2">
+      <option name="Make" enabled="true" />
+    </method>
+  </configuration>
+</component>

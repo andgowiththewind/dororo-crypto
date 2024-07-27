@@ -1,0 +1,16 @@
+dororo-thread-pool:
+  dispatcher:
+    core-pool-size: 8
+    queue-capacity: 500
+    max-pool-size: 12
+    keep-alive-seconds: 60
+  crypto:
+    core-pool-size: 18
+    queue-capacity: 20000
+    max-pool-size: 24
+    keep-alive-seconds: 60
+  stat:
+    core-pool-size: 8
+    queue-capacity: 5000
+    max-pool-size: 10
+    keep-alive-seconds: 60
